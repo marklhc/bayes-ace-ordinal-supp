@@ -1,0 +1,372 @@
+# Stan (Marginal Likelihood) vs blavaan: Timing Benchmark
+
+
+## Overview
+
+Two Bayesian approaches for estimating polychoric correlations in the
+ACE twin model are compared:
+
+| Feature | Stan (marginal likelihood) | blavaan (data augmentation) |
+|----|----|----|
+| **Likelihood** | Multinomial on $K(K+1)/2$ reduced cell counts | Multivariate normal on $N$ augmented latent variables |
+| **Computational scaling** | $O(K^2)$ — independent of $N$ | $O(N)$ — linear in sample size |
+| **Implementation** | `ace_ordinal_symmetry_for_compare.stan` | `bcfa()` from the *blavaan* package |
+
+Both methods use identical MCMC settings (3 chains, 500 warmup + 1000
+post-warmup iterations) and equivalent priors:
+
+- Polychoric correlations: Uniform$(-1, 1)$ — Stan uses
+  `scaled_rho ~ beta(1, 1)` with a linear rescaling; blavaan uses
+  `lkj_corr(1)`, which is also uniform for a bivariate case.
+- Thresholds: `normal(0, 1.5)` in both.
+
+## Setup
+
+``` r
+library(cmdstanr)
+library(lavaan)
+library(blavaan)
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+library(here)
+# Run 3 chains in parallel
+options(mc.cores = 3)
+options(future.globals.maxSize = 2 * 1024^3) # 2 GB
+```
+
+## Compile Stan Model
+
+``` r
+ace_cmp <- cmdstan_model(here("stan", "ace_ordinal_symmetry_for_compare.stan"))
+```
+
+## Data
+
+BMI category data (normal / overweight / obese) for MZ and DZ twin
+pairs, based on the summary frequencies from Jøreskog (2021).
+
+``` r
+n_mz <- c(325, 60, 7, 78, 150, 40, 8, 38, 88)
+n_dz <- c(202, 97, 19, 96, 112, 64, 46, 56, 66)
+dat_mz <- data.frame(
+    twin1 = rep(rep(1:3, 3), n_mz),
+    twin2 = rep(rep(1:3, each = 3), n_mz)
+)
+dat_dz <- data.frame(
+    twin1 = rep(rep(1:3, 3), n_dz),
+    twin2 = rep(rep(1:3, each = 3), n_dz)
+)
+dat_mz[] <- lapply(dat_mz, ordered, labels = c("normal", "overweight", "obese"))
+dat_dz[] <- lapply(dat_dz, ordered, labels = c("normal", "overweight", "obese"))
+dat_full <- rbind(
+    data.frame(zygosity = "MZ", dat_mz),
+    data.frame(zygosity = "DZ", dat_dz)
+)
+
+# Fixed-seed subsamples
+set.seed(1234)
+dat_100 <- dat_full[sample.int(nrow(dat_full), 100), ]
+dat_500 <- dat_full[sample.int(nrow(dat_full), 500), ]
+
+cat(
+    "N full =",
+    nrow(dat_full),
+    "  (MZ:",
+    sum(dat_full$zygosity == "MZ"),
+    "| DZ:",
+    sum(dat_full$zygosity == "DZ"),
+    ")\n"
+)
+```
+
+    N full = 1552   (MZ: 794 | DZ: 758 )
+
+## blavaan Model Syntax
+
+``` r
+# Equal thresholds for both twins and across zygosity groups (same labels)
+ace_blavaan_mod <- "
+    twin1 ~~ twin2
+    twin1 | th1 * t1 + th2 * t2
+    twin2 | th1 * t1 + th2 * t2
+"
+```
+
+## Helper Functions
+
+``` r
+# Reduce a contingency table to lower-triangular vector (exploiting symmetry)
+to_ltri <- function(tab_x) {
+    symm_x <- tab_x + t(tab_x) - diag(diag(tab_x))
+    symm_x[lower.tri(symm_x, diag = TRUE)]
+}
+
+# Run Stan marginal likelihood approach; return timing + estimates
+run_stan <- function(dat, seed = 42) {
+    tab_mz <- with(dat[dat$zygosity == "MZ", ], table(twin1, twin2))
+    tab_dz <- with(dat[dat$zygosity == "DZ", ], table(twin1, twin2))
+    fit <- ace_cmp$sample(
+        list(
+            k = 3L,
+            ltri_ns1 = to_ltri(tab_mz), # MZ → rho1
+            ltri_ns2 = to_ltri(tab_dz) # DZ → rho2
+        ),
+        chains = 3,
+        iter_warmup = 500,
+        iter_sampling = 1000,
+        seed = seed,
+        refresh = 0
+    )
+    summ <- fit$summary(c("rho1", "rho2"))
+    list(
+        elapsed = fit$time()$total,
+        rhat_max = max(summ$rhat, na.rm = TRUE),
+        rho = tibble(
+            group = c("MZ", "DZ"),
+            mean = summ$mean,
+            sd = summ$sd,
+            ci_lower = summ$q5,
+            ci_upper = summ$q95
+        )
+    )
+}
+
+# Run blavaan data augmentation approach; return timing + estimates
+run_blavaan <- function(dat, seed = 42) {
+    fit <- bcfa(
+        ace_blavaan_mod,
+        data = dat,
+        ordered = c("twin1", "twin2"),
+        group = "zygosity",
+        n.chains = 3,
+        burnin = 500,
+        sample = 1000,
+        seed = seed
+    )
+    pe <- parameterEstimates(fit)
+    summ <- summary(fit)
+    cor_rows <- subset(pe, op == "~~" & lhs == "twin1" & rhs == "twin2")
+    rows_id <- as.integer(rownames(cor_rows))
+    # Groups are ordered alphabetically by blavaan/lavaan: DZ = 1, MZ = 2
+    group_labs <- fit@Data@group.label
+    cor_rows$group_label <- group_labs[cor_rows$group]
+    # Max Rhat across correlation parameters (from blavaan's psrf diagnostic)
+    psrf <- blavaan::blavInspect(fit, "psrf")
+    list(
+        elapsed = fit@timing$Estimate,
+        rhat_max = max(psrf, na.rm = TRUE),
+        rho = tibble(
+            group = cor_rows$group_label,
+            mean = cor_rows$est,
+            sd = as.numeric(summ[rows_id, " Post.SD"]),
+            ci_lower = as.numeric(summ[rows_id, "pi.lower"]),
+            ci_upper = as.numeric(summ[rows_id, "pi.upper"])
+        )
+    )
+}
+```
+
+## Benchmarks
+
+Results are cached to RDS files to avoid re-running.
+
+### N = 100
+
+``` r
+cache_100 <- here("notebooks", "bench_blavaan_100.rds")
+if (!file.exists(cache_100)) {
+    res_100 <- list(
+        stan = run_stan(dat_100, seed = 42),
+        blavaan = run_blavaan(dat_100, seed = 42)
+    )
+    saveRDS(res_100, cache_100)
+} else {
+    res_100 <- readRDS(cache_100)
+}
+cat(sprintf(
+    "Stan: %.1f s  (max Rhat = %.3f)\nblavaan: %.1f s  (max Rhat = %.3f)\n",
+    res_100$stan$elapsed,
+    res_100$stan$rhat_max,
+    res_100$blavaan$elapsed,
+    res_100$blavaan$rhat_max
+))
+```
+
+    Stan: 0.5 s  (max Rhat = 1.001)
+    blavaan: 15.5 s  (max Rhat = 1.001)
+
+### N = 500
+
+``` r
+cache_500 <- here("notebooks", "bench_blavaan_500.rds")
+if (!file.exists(cache_500)) {
+    res_500 <- list(
+        stan = run_stan(dat_500, seed = 42),
+        blavaan = run_blavaan(dat_500, seed = 42)
+    )
+    saveRDS(res_500, cache_500)
+} else {
+    res_500 <- readRDS(cache_500)
+}
+cat(sprintf(
+    "Stan: %.1f s  (max Rhat = %.3f)\nblavaan: %.1f s  (max Rhat = %.3f)\n",
+    res_500$stan$elapsed,
+    res_500$stan$rhat_max,
+    res_500$blavaan$elapsed,
+    res_500$blavaan$rhat_max
+))
+```
+
+    Stan: 0.7 s  (max Rhat = 1.002)
+    blavaan: 86.8 s  (max Rhat = 1.005)
+
+### Full Data (N = 1552)
+
+``` r
+cache_full <- here("notebooks", "bench_blavaan_full.rds")
+if (!file.exists(cache_full)) {
+    res_full <- list(
+        stan = run_stan(dat_full, seed = 42),
+        blavaan = run_blavaan(dat_full, seed = 42)
+    )
+    saveRDS(res_full, cache_full)
+} else {
+    res_full <- readRDS(cache_full)
+}
+cat(sprintf(
+    "Stan: %.1f s  (max Rhat = %.3f)\nblavaan: %.1f s  (max Rhat = %.3f)\n",
+    res_full$stan$elapsed,
+    res_full$stan$rhat_max,
+    res_full$blavaan$elapsed,
+    res_full$blavaan$rhat_max
+))
+```
+
+    Stan: 1.0 s  (max Rhat = 1.002)
+    blavaan: 568.6 s  (max Rhat = 1.000)
+
+## Results
+
+### Timing
+
+``` r
+timing_df <- tibble(
+    N = rep(c(100, 500, nrow(dat_full)), each = 2),
+    Method = rep(c("Stan (marginal)", "blavaan"), 3),
+    Time_s = c(
+        res_100$stan$elapsed,
+        res_100$blavaan$elapsed,
+        res_500$stan$elapsed,
+        res_500$blavaan$elapsed,
+        res_full$stan$elapsed,
+        res_full$blavaan$elapsed
+    )
+)
+
+timing_df |>
+    pivot_wider(names_from = Method, values_from = Time_s) |>
+    mutate(
+        `Speedup (×)` = round(`blavaan` / `Stan (marginal)`, 1),
+        across(where(is.double), \(x) round(x, 1))
+    ) |>
+    knitr::kable(caption = "Wall-clock sampling time (seconds) by sample size")
+```
+
+|    N | Stan (marginal) | blavaan | Speedup (×) |
+|-----:|----------------:|--------:|------------:|
+|  100 |             0.5 |    15.5 |        32.5 |
+|  500 |             0.7 |    86.8 |       133.4 |
+| 1552 |             1.0 |   568.6 |       560.2 |
+
+Wall-clock sampling time (seconds) by sample size
+
+``` r
+ggplot(timing_df, aes(x = N, y = Time_s, color = Method, shape = Method)) +
+    geom_line(linewidth = 0.8) +
+    geom_point(size = 3) +
+    scale_x_log10(
+        breaks = c(100, 500, nrow(dat_full)),
+        labels = c("100", "500", as.character(nrow(dat_full)))
+    ) +
+    labs(
+        x = "Sample size N (log scale)",
+        y = "Sampling time (seconds)",
+        title = "MCMC Wall-Clock Time: Stan (marginal) vs blavaan",
+        color = NULL,
+        shape = NULL
+    ) +
+    theme_minimal(base_size = 13) +
+    theme(legend.position = "bottom")
+```
+
+![](benchmark-stan-blavaan_files/figure-commonmark/timing-plot-1.png)
+
+### Polychoric Correlation Estimates
+
+Posterior mean and 90% credible interval for the MZ and DZ polychoric
+correlations ($\rho_\text{MZ}$ and $\rho_\text{DZ}$) across the two
+methods and three sample sizes.
+
+``` r
+ests_df <- bind_rows(
+    mutate(res_100$stan$rho, N = 100, Method = "Stan (marginal)"),
+    mutate(res_100$blavaan$rho, N = 100, Method = "blavaan"),
+    mutate(res_500$stan$rho, N = 500, Method = "Stan (marginal)"),
+    mutate(res_500$blavaan$rho, N = 500, Method = "blavaan"),
+    mutate(res_full$stan$rho, N = nrow(dat_full), Method = "Stan (marginal)"),
+    mutate(res_full$blavaan$rho, N = nrow(dat_full), Method = "blavaan")
+)
+
+ests_df |>
+    arrange(N, group, Method) |>
+    mutate(across(where(is.numeric), \(x) round(x, 3))) |>
+    knitr::kable(
+        col.names = c("Group", "Mean", "SD", "CI 5%", "CI 95%", "N", "Method"),
+        caption = "Posterior summaries of polychoric correlations (90% CI)"
+    )
+```
+
+| Group |  Mean |    SD |  CI 5% | CI 95% |    N | Method          |
+|:------|------:|------:|-------:|-------:|-----:|:----------------|
+| DZ    | 0.182 | 0.170 | -0.104 |  0.453 |  100 | Stan (marginal) |
+| DZ    | 0.176 | 0.179 | -0.187 |  0.506 |  100 | blavaan         |
+| MZ    | 0.776 | 0.080 |  0.627 |  0.883 |  100 | Stan (marginal) |
+| MZ    | 0.781 | 0.076 |  0.613 |  0.894 |  100 | blavaan         |
+| DZ    | 0.448 | 0.066 |  0.336 |  0.551 |  500 | Stan (marginal) |
+| DZ    | 0.449 | 0.068 |  0.311 |  0.574 |  500 | blavaan         |
+| MZ    | 0.839 | 0.029 |  0.787 |  0.881 |  500 | Stan (marginal) |
+| MZ    | 0.841 | 0.028 |  0.780 |  0.889 |  500 | blavaan         |
+| DZ    | 0.455 | 0.037 |  0.394 |  0.515 | 1552 | Stan (marginal) |
+| DZ    | 0.455 | 0.037 |  0.382 |  0.527 | 1552 | blavaan         |
+| MZ    | 0.810 | 0.019 |  0.777 |  0.838 | 1552 | Stan (marginal) |
+| MZ    | 0.809 | 0.019 |  0.768 |  0.843 | 1552 | blavaan         |
+
+Posterior summaries of polychoric correlations (90% CI)
+
+``` r
+ggplot(
+    ests_df,
+    aes(
+        x = factor(N),
+        y = mean,
+        ymin = ci_lower,
+        ymax = ci_upper,
+        color = Method,
+        shape = Method
+    )
+) +
+    geom_pointrange(position = position_dodge(width = 0.4)) +
+    facet_wrap(~group, labeller = label_both) +
+    labs(
+        x = "Sample size",
+        y = expression("Polychoric correlation " * rho ~ " (90% CI)"),
+        title = "Posterior Estimates: Stan (marginal) vs blavaan",
+        color = NULL,
+        shape = NULL
+    ) +
+    theme_minimal(base_size = 13) +
+    theme(legend.position = "bottom")
+```
+
+![](benchmark-stan-blavaan_files/figure-commonmark/ests-plot-1.png)

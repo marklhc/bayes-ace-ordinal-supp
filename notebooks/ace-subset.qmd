@@ -1,0 +1,342 @@
+---
+title: "ACE Model (Subset Data)"
+---
+
+### Step 0: Install and load required packages
+
+```{r}
+#| eval: false
+# we recommend running this is a fresh R session or restarting your current session
+install.packages(
+    "cmdstanr",
+    repos = c('https://stan-dev.r-universe.dev', getOption("repos"))
+)
+library(cmdstanr)
+# Check toolchains
+check_cmdstan_toolchain()
+# If toolcahin is not setup properly, follow the printed instructions, or visit https://mc-stan.org/docs/cmdstan-guide/installation.html#cpp-toolchain
+# Install cmdstan
+cmdstanr::install_cmdstan()
+# We also install the bayesplot package visualizing MCMC results
+install.packages("bayesplot")
+```
+
+```{r}
+library(cmdstanr)
+register_knitr_engine()
+options(mc.cores = min(parallel::detectCores() - 1, 4)) # Use four CPU cores for MCMC sampling, if available
+library(bayesplot)
+library(HDInterval)
+library(ggplot2)
+```
+
+```{r}
+# Define function for HDI
+hdi2 <- function(x, cred_mass = 0.90) {
+    hdi_interval <- HDInterval::hdi(x, credMass = cred_mass)
+    setNames(hdi_interval, c("hdi_lo", "hdi_hi"))
+}
+```
+
+```{r}
+#| include: false
+knitr::knit_engines$set(stan = function(options) {
+    output_var <- options$output.var
+    if (options$eval) {
+        dir <- if (options$cache) {
+            paste0(options$cache.path %||% "", options$label)
+        } else {
+            tempdir()
+        }
+        file <- cmdstanr::write_stan_file(options$code, dir = dir)
+        engine_opts <- options$engine.opts %||% list()
+        mod <- do.call(
+            cmdstanr::cmdstan_model,
+            c(list(stan_file = file), engine_opts)
+        )
+        assign(output_var, mod, envir = .GlobalEnv)
+    }
+    options$engine <- "stan"
+    knitr::engine_output(options, paste(options$code, collapse = "\n"), "")
+})
+```
+
+### Step 1: Data import
+
+```{r}
+set.seed(1234)
+n_mz <- c(325, 60, 7, 78, 150, 40, 8, 38, 88)
+n_dz <- c(202, 97, 19, 96, 112, 64, 46, 56, 66)
+# Convert to long format data frame
+dat_mz <- data.frame(
+    twin1 = rep(rep(1:3, 3), n_mz),
+    twin2 = rep(rep(1:3, each = 3), n_mz)
+)
+dat_dz <- data.frame(
+    twin1 = rep(rep(1:3, 3), n_dz),
+    twin2 = rep(rep(1:3, each = 3), n_dz)
+)
+dat_mz[] <- lapply(dat_mz, ordered, labels = c("normal", "overweight", "obese"))
+dat_dz[] <- lapply(dat_dz, ordered, labels = c("normal", "overweight", "obese"))
+dat_full <- rbind(
+    data.frame(zygosity = "MZ", dat_mz),
+    data.frame(zygosity = "DZ", dat_dz)
+)
+sub_n <- 100
+dat <- dat_full[sample.int(nrow(dat_full), 100), ]
+# dat <- dat_full
+```
+
+```{r}
+str(dat)
+summary(dat)
+```
+
+```{r}
+tab_mz <- with(dat[dat$zygosity == "MZ", ], table(twin1, twin2))
+tab_dz <- with(dat[dat$zygosity == "DZ", ], table(twin1, twin2))
+```
+
+### Step 2: Compile the Stan model
+
+```{stan}
+#| eval: !expr '!file.exists(here::here("notebooks", "ace_fit.rds"))'
+#| output.var: "ace"
+#| file: !expr here::here("stan", "ace_ordinal_symmetry.stan")
+#| engine.opts: !expr list(include_paths = here::here("stan"))
+```
+
+```{r}
+#| eval: false
+#| echo: false
+ace <- cmdstan_model(here::here("stan", "ace_ordinal_symmetry.stan"))
+```
+
+### Step 3: Prepare data and sampling
+
+```{r}
+# Reduced frequency vector
+to_ltri <- function(tab_x) {
+    symm_x <- tab_x + t(tab_x) - diag(diag(tab_x))
+    ltri_x <- symm_x[lower.tri(symm_x, diag = TRUE)]
+}
+(ltri_nmz <- to_ltri(tab_mz))
+(ltri_ndz <- to_ltri(tab_dz))
+```
+
+```{r}
+#| eval: !expr '!file.exists(here::here("notebooks", "ace_fit.rds"))'
+ace_fit <- ace$sample(
+    list(k = 3, ltri_ns1 = ltri_nmz, ltri_ns2 = ltri_ndz),
+    chains = 4,
+    iter_warmup = 1000,
+    iter_sampling = 1000,
+    seed = 732 # for reproducibility
+)
+```
+
+```{r}
+#| include: false
+if (!file.exists(here::here("notebooks", "ace_fit.rds"))) {
+    ace_fit$save_object(here::here("notebooks", "ace_fit.rds"))
+} else {
+    ace_fit <- readRDS(here::here("notebooks", "ace_fit.rds"))
+}
+```
+
+### Step 4: Check convergence
+
+```{r}
+params <- c("rho1", "rho2", "thres", "h2", "c2", "e2")
+ace_fit$print(params)
+ace_fit$diagnostic_summary()
+```
+
+```{r}
+#| label: fig-rank-hist
+#| fig-cap: Rank histograms for the main model parameters
+ace_fit$draws(params) |>
+    mcmc_rank_hist()
+```
+
+### Step 5: Model checking
+
+#### Repeat Steps 3 and 4 with reparameterized model
+
+With unreasonable h2 and c2, we reparameterize the model to enforce theory-informed priors/constraints.
+
+```{stan}
+#| eval: !expr '!file.exists(here::here("notebooks", "ace_s_fit.rds"))'
+#| output.var: "ace_simplex"
+#| file: !expr here::here("stan", "ace_ordinal_symmetry_simplex.stan")
+#| engine.opts: !expr list(include_paths = here::here("stan"))
+```
+
+```{r}
+#| eval: false
+#| echo: false
+ace_simplex <- cmdstan_model(here::here(
+    "stan",
+    "ace_ordinal_symmetry_simplex.stan"
+))
+```
+
+One can then repeat steps 3 and 4 to obtain the posterior samples and convergence diagnostics, which we do not repeat the details here. The posterior summaries of the main parameters are in @tbl-post-summ.
+
+```{r}
+#| eval: !expr '!file.exists(here::here("notebooks", "ace_s_fit.rds"))'
+ace_s_fit <- ace_simplex$sample(
+    list(k = 3, ltri_ns1 = ltri_nmz, ltri_ns2 = ltri_ndz),
+    chains = 4,
+    iter_warmup = 1000,
+    iter_sampling = 1000,
+    seed = 732 # for reproducibility
+)
+```
+
+```{r}
+#| include: false
+if (!file.exists(here::here("notebooks", "ace_s_fit.rds"))) {
+    ace_s_fit$save_object(here::here("notebooks", "ace_s_fit.rds"))
+} else {
+    ace_s_fit <- readRDS(here::here("notebooks", "ace_s_fit.rds"))
+}
+```
+
+```{r}
+#| label: tbl-post-summ
+#| tbl-cap: Posterior summary of the main model parameters, based on the simplex parameterization
+ace_s_fit$summary(params, mean, median, sd, mad, posterior::quantile2, hdi2) |>
+    transform(
+        variable = paste0(
+            variable,
+            " (",
+            c(
+                "$\\rho^\\text{MZ}$",
+                "$\\rho^\\text{DZ}$",
+                "$\\tau_1$",
+                "$\\tau_2$",
+                "$h^2$",
+                "$c^2$",
+                "$e^2$"
+            ),
+            ")"
+        )
+    ) |>
+    knitr::kable(digits = 2)
+```
+
+#### Global fit
+
+```{r}
+#| include: false
+ace_s_fit$summary(c("X2_1_samp", "X2_1_gt", "X2_2_samp", "X2_2_gt"))
+```
+
+#### Local fit
+
+```{r}
+x_scale <- scale_x_continuous(
+    breaks = seq_along(ltri_nmz),
+    labels = c(
+        "(1,1)",
+        "(2,1)+(1,2)",
+        "(2,2)",
+        "(3,1)+(1,3)",
+        "(3,2)+(2,3)",
+        "(3,3)"
+    )
+)
+```
+
+```{r}
+#| label: fig-ppc-intervals-mz
+#| fig-cap: Posterior predictive check for each cell count in the contingency tables for MZ twins
+ace_s_fit$draws("ltri_ns1_tilde", format = "matrix") |>
+    ppc_intervals(y = ltri_nmz) +
+    xlab("Cell (twin1, twin2)") +
+    x_scale
+```
+
+```{r}
+#| label: fig-ppc-intervals-dz
+#| fig-cap: Posterior predictive check for each cell count in the contingency tables for DZ twins
+ace_s_fit$draws("ltri_ns2_tilde", format = "matrix") |>
+    ppc_intervals(y = ltri_ndz) +
+    xlab("Cell (twin1, twin2)") +
+    x_scale
+```
+
+### Step 6: Summarizing the posterior
+
+```{r}
+#| label: fig-post-dens
+#| fig-cap: Posterior distributions of the main model parameters
+ace_s_fit$draws(params) |>
+    mcmc_hist()
+```
+
+### Compare with *umx* package
+
+```{r}
+#| echo: true
+#| error: true
+library(umx)
+# Make the ordinal variables into umxFactors
+dat[, c("twin1", "twin2")] <- umxFactor(dat[, c("twin1", "twin2")])
+
+mz_data <- dat[dat$zygosity == "MZ", ]
+dz_data <- dat[dat$zygosity == "DZ", ]
+
+# Model and summary with FIML
+m1 <- umxACE(
+    selDVs = "twin",
+    dzData = dz_data,
+    mzData = mz_data,
+    sep = "",
+    tryHard = "ordinal"
+)
+umxSummary(m1)
+```
+
+```{r}
+# CI failed
+umxConfint(m1, run = TRUE)
+```
+
+
+```{r}
+# Model and summary with DWLS
+m1_dwls <- umxACE(
+    selDVs = "twin",
+    dzData = dz_data,
+    mzData = mz_data,
+    sep = "",
+    type = "DWLS",
+    tryHard = "ordinal"
+)
+umxSummary(m1_dwls)
+```
+
+```{r}
+# Extremely large standard errors
+summary(m1_dwls)
+```
+
+```{r}
+# Model and summary with WLS
+m1_wls <- umxACE(
+    selDVs = "twin",
+    dzData = dz_data,
+    mzData = mz_data,
+    sep = "",
+    type = "WLS",
+    tryHard = "ordinal"
+)
+umxSummary(m1_wls)
+```
+
+```{r}
+# CI failed
+umxConfint(m1_wls, run = TRUE)
+```

@@ -1,0 +1,239 @@
+---
+title: "Simulation results"
+format: typst
+echo: false
+warning: false
+---
+
+The simulation is based on the ACE model with the same parameters as in the Jöreskog example, but with smaller sample sizes (50 and 100 pairs), and with 2,500 replications. The results are stored in `simulation/sim_ace_joreskog-1.rds`, and the code to run the simulation is in `simulation/sim_ace_joreskog.R`. The methods compared are:
+
+- Stan with simplex parameterization (`stan`)
+- Stan with unbounded parameterization (`stan_nc`)
+- umx with default settings (`umx`)
+
+For Stan, convergence was achieved if there were no divergent transitions, the $\hat R$ values were less than 1.01, and the effective sample size was greater than 400. When divergent transitions were present, we reran the Stan NUTS sampler up to three times by increasing the `adapt_delta` parameter from 0.8 (default) to 0.90, 0.95, and 0.99, and the corresponding `max_treedepth` from 10 (default) to 12 and 15. For umx, convergence was considered achieved if the optimization algorithm converged and the Hessian matrix was positive definite, so that both point and standard errors could be computed. For all methods, we considered estimates to be admissible if (in the case of Stan, the posterior means of) both $h^2$ and $c^2$ were between 0 and 1, and their sum was less than or equal to 1.
+
+```{r}
+#| message: false
+library(dplyr)
+library(tidyr)
+library(tinytable)
+library(ggplot2)
+res <- readRDS(here::here("simulation/sim_ace_joreskog-1.rds"))
+```
+
+```{r}
+res_long <- res |>
+    select(
+        -(REPLICATIONS:ERRORS)
+    ) |>
+    rename_with(
+        ~ gsub("(ciwidth|coverage)\\.umx", "\\1_hdi.umx", .x)
+    ) |>
+    rename_with(
+        ~ gsub("_wald\\.umx", ".umx", .x)
+    ) |>
+    pivot_longer(
+        -n_pairs,
+        names_to = c("metric", ".value"),
+        names_pattern = "(.*)\\.(.*)"
+    ) |>
+    pivot_wider(
+        names_from = n_pairs,
+        values_from = stan:umx
+    )
+res_long2 <- res_long |>
+    select(metric, stan_50, stan_nc_50, umx_50, stan_100, stan_nc_100, umx_100)
+```
+
+```{r}
+#| label: tbl-conv-admiss
+#| tbl-cap: "Convergence and admissibility rates"
+res_long2 |>
+    filter(grepl("converge|admissible", metric)) |>
+    mutate(across(-metric, ~ .x * 100)) |>
+    `colnames<-`(c(
+        "metric",
+        "Stan (simplex)",
+        "Stan (unbounded)",
+        "umx",
+        "Stan (simplex)",
+        "Stan (unbounded)",
+        "umx"
+    )) |>
+    tt() |>
+    group_tt(
+        j = list(
+            "n = 50" = 2:4,
+            "n = 100" = 5:7
+        )
+    ) |>
+    format_tt(j = 2:7, digits = 1, num_fmt = "decimal") |>
+    style_tt(align = "c", j = 2:7)
+```
+
+```{r}
+res_long2 |>
+    tidyr::separate(
+        metric,
+        into = c("param", "stat"),
+        sep = "\\.|_",
+        extra = "merge"
+    ) -> res_stats
+
+make_table <- function(param_str) {
+    res_stats |>
+        filter(
+            param == param_str,
+            grepl("bias|rmse|coverage|ciwidth", stat)
+        ) |>
+        select(
+            stat,
+            stan_50,
+            stan_nc_50,
+            umx_50,
+            stan_100,
+            stan_nc_100,
+            umx_100
+        ) |>
+        # convert coverage to percent
+        mutate(across(
+            -stat,
+            ~ case_when(
+                is.nan(.x) ~ "inadmissible",
+                is.na(.x) ~ "---",
+                grepl("coverage", stat) ~ formatC(
+                    .x * 100,
+                    digits = 1,
+                    format = "f"
+                ),
+                TRUE ~ formatC(.x, digits = 2, format = "f")
+            )
+        )) |>
+        arrange(stat) |>
+        mutate(
+            stat = case_when(
+                stat == "bias" ~ "post mean",
+                stat == "bias_med" ~ "post median",
+                stat == "bias_mode" ~ "post mode",
+                stat == "rmse" ~ "post mean",
+                stat == "rmse_med" ~ "post median",
+                stat == "rmse_mode" ~ "post mode",
+                stat == "coverage" ~ "Equal-tailed/Wald",
+                stat == "coverage_hdi" ~ "HDI/Profile",
+                stat == "ciwidth" ~ "Equal-tailed/Wald",
+                stat == "ciwidth_hdi" ~ "HDI/Profile",
+                TRUE ~ stat
+            )
+        ) |>
+        `colnames<-`(c(
+            "metric",
+            "Stan (simplex)",
+            "Stan (unbounded)",
+            "umx",
+            "Stan (simplex)",
+            "Stan (unbounded)",
+            "umx"
+        )) |>
+        tt() |>
+        group_tt(
+            i = list(
+                "Bias" = 1,
+                "CI Width" = 4,
+                "CI Coverage (%)" = 6,
+                "RMSE" = 8
+            ),
+            j = list("n = 50" = 2:4, "n = 100" = 5:7)
+        ) |>
+        style_tt(align = "c", j = 2:7) |>
+        style_tt(align = "l", i = c(1, 5, 8, 11)) |>
+        style_tt(
+            i = c(2:4, 6:7, 9:10, 12:14),
+            indent = 2
+        )
+}
+```
+
+```{r}
+#| label: tbl-h2-sim
+#| tbl-cap: "Bias, RMSE, CI width, and CI coverage for $h^2$"
+# h^2 table
+make_table("h2")
+```
+
+```{r}
+#| label: tbl-c2-sim
+#| tbl-cap: "Bias, RMSE, CI width, and CI coverage for $c^2$"
+# c^2 table
+make_table("c2")
+```
+
+
+```{r}
+#| include: false
+source(here::here("simulation", "sim_ace_joreskog_cond.R"))
+res1 <- readRDS(here::here(
+    "simulation",
+    "sim_ace_joreskog_results__1",
+    "results-row-1.rds"
+))
+res2 <- readRDS(here::here(
+    "simulation",
+    "sim_ace_joreskog_results__1",
+    "results-row-2.rds"
+))
+# Filter by inadmissible Stan_nc or umx
+# stan_nc
+res1_ia_stan_nc <- res1$results[which(res1$results$stan_nc.admissible == 0), ]
+res2_ia_stan_nc <- res2$results[which(res2$results$stan_nc.admissible == 0), ]
+# umx
+res1_ia_umx <- res1$results[which(res1$results$umx.admissible == 0), ]
+res2_ia_umx <- res2$results[which(res2$results$umx.admissible == 0), ]
+```
+
+
+```{r}
+#| label: fig-combo-c2-h2
+#| fig-cap: "Estimates of $h^2$ and $c^2$. The dashed lines indicate the true values, and the dotted line indicates the boundary where $h^2 + c^2 = 1$. The red points indicate estimates from replications where the Stan (unbounded) or umx estimates were inadmissible."
+#| layout-ncol: 2
+#| fig-width: 3.5
+#| fig-subcap:
+#|   - "Stan (simplex) posterior median"
+#|   - "Stan (unbounded) posterior mean"
+#|   - "umx"
+ggplot(res1$results, aes(x = stan.h2_est_med, y = stan.c2_est_med)) +
+    geom_point(alpha = 0.5, size = 0.5) +
+    geom_vline(xintercept = FIXED$h2_true, linetype = "dashed") +
+    geom_hline(yintercept = FIXED$c2_true, linetype = "dashed") +
+    geom_abline(slope = -1, intercept = 1, linetype = "dotted") +
+    labs(x = "h2 estimate", y = "c2 estimate") +
+    ggtitle("Stan (simplex) posterior median")
+ggplot(res1$results, aes(x = stan_nc.h2_est, y = stan_nc.c2_est)) +
+    geom_point(alpha = 0.5, size = 0.5) +
+    geom_point(
+        data = res1_ia_stan_nc,
+        aes(x = stan_nc.h2_est, y = stan_nc.c2_est),
+        color = "red",
+        alpha = 0.5,
+        size = 0.5
+    ) +
+    geom_vline(xintercept = FIXED$h2_true, linetype = "dashed") +
+    geom_hline(yintercept = FIXED$c2_true, linetype = "dashed") +
+    geom_abline(slope = -1, intercept = 1, linetype = "dotted") +
+    labs(x = "h2 estimate", y = "c2 estimate") +
+    ggtitle("Stan (unbounded) posterior mean")
+ggplot(res1$results, aes(x = umx.h2_est, y = umx.c2_est)) +
+    geom_point(alpha = 0.5, size = 0.5) +
+    geom_point(
+        data = res1_ia_umx,
+        aes(x = umx.h2_est, y = umx.c2_est),
+        color = "red",
+        alpha = 0.5,
+        size = 0.5
+    ) +
+    geom_vline(xintercept = FIXED$h2_true, linetype = "dashed") +
+    geom_hline(yintercept = FIXED$c2_true, linetype = "dashed") +
+    geom_abline(slope = -1, intercept = 1, linetype = "dotted") +
+    labs(x = "h2 estimate", y = "c2 estimate") +
+    ggtitle("umx")
+```
