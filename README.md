@@ -14,60 +14,30 @@ project root. Run the commands below from that root without `--vanilla` so the
 startup profile is used. CmdStan must also be installed and configured for
 `cmdstanr`; `renv` restores R packages, not CmdStan or the C++ toolchain.
 
-- Stan (Marginal Likelihood) vs blavaan: Corrected Repeated Benchmark
+- Stan (Marginal Likelihood) vs blavaan: Illustrative Timing Benchmark
     * [Source code](notebooks/benchmark-stan-blavaan.qmd)
-    * [Reusable R helper](notebooks/benchmark-stan-blavaan.R)
-    * [Cache verification script](notebooks/verify-benchmark-stan-blavaan.R)
-    * [Markdown](notebooks/benchmark-stan-blavaan.md)
-    * [PDF](notebooks/benchmark-stan-blavaan.pdf)
+    * [Rendered report](notebooks/benchmark-stan-blavaan.html)
 
-### Running and validating the corrected benchmark
+### Running the timing benchmark
 
-The corrected benchmark uses matching first-threshold/log-spacing priors, common
-90% equal-tail intervals, and modern diagnostics for the same four structural
-parameters. It includes three repetitions per method at each of 100, 500, and
-1,552 twin pairs, with three parallel chains, 500 warmup and 1,000 sampling
-iterations per chain. Reported times are whole-fit wall-clock times including
-warmup, with compilation and explicit reporting measured separately; the
-CmdStanR and rstan implementations perform different internal tasks.
+This is a small illustrative comparison of Stan's marginal-likelihood approach
+with data augmentation in *blavaan* for unrestricted MZ and DZ correlations. It
+uses one run per method at each of 100, 500, and 1,552 twin pairs; it is not a
+repeated performance study or a comparison of the constrained ACE model. Each
+fit uses three chains, 500 warmup iterations, and 1,000 sampling iterations per
+chain. The reported whole-fit times include warmup and internal package
+post-processing, but exclude compilation.
 
-The package includes 18 corrected caches named
-`notebooks/bench_stan_blavaan_v2_<100|500|full>_<stan|blavaan>_rep<1|2|3>.rds`.
-They preserve draws, diagnostics, conditions and run provenance. To validate them
-against the **current environment**, run:
-
-```sh
-Rscript notebooks/verify-benchmark-stan-blavaan.R
-```
-
-Verification checks provenance, numeric summaries, common interval quantiles,
-group/prior mappings, diagnostics and cache invalidation. It prepares the model
-(compiling or checking its executable as needed), but does not run fitting or
-write caches. Successful validation does not imply that every diagnostic passes;
-inspect the printed diagnostic outcomes as well.
-
-The distributed caches record the original run environment. Relocation, changed
-library or CmdStan paths, compiler/executable changes, hardware/software changes,
-or changes to input data, benchmark sources, priors or settings can invalidate
-them even after `renv::restore()`. A provenance mismatch is not a reason to treat
-the archived timings as measurements of the new environment. Recompute using:
-
-```sh
-Rscript -e 'source("notebooks/benchmark-stan-blavaan.R"); runs <- benchmark_execute()'
-Rscript notebooks/verify-benchmark-stan-blavaan.R
-```
-
-`benchmark_execute()` reuses validated caches, archives invalid corrected caches
-with an `.invalid-...` suffix, and fits missing or invalid runs. Failures are saved
-as failures and stop execution; diagnostic flags remain visible. Recomputing the
-full repeated benchmark can take tens of minutes. To generate the report, run:
+From the project root, render the report with:
 
 ```sh
 quarto render notebooks/benchmark-stan-blavaan.qmd
 ```
 
-Rendering also invokes cache validation and recomputes invalid runs. The corrected
-workflow does not consume historical `bench_blavaan_*.rds` summaries.
+The notebook saves individual fit results as RDS files and reuses them on later
+renders. Delete the relevant `notebooks/bench_stan_blavaan_<100|500|full>_<stan|blavaan>.rds`
+file to rerun that fit. Rendering requires both CmdStan and the R package
+*blavaan*, in addition to the packages restored by `renv`.
 
 ## Other supplementary materials
 
