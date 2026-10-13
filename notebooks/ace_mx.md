@@ -27,14 +27,18 @@ component $E$. For monozygotic (MZ) twins, both $A$ and $C$ are shared.
 Therefore, for a pair of MZ twins with outcomes $Y^*_1$ and $Y^*_2$, one
 can express the model as
 
-$$Y^{*\textit{MZ}}_1 = A + C + E_1 \\
-Y^{*\textit{MZ}}_2 = A + C + E_2 \\$$
+$$
+Y^{*\textit{MZ}}_1 = A + C + E_1 \\
+Y^{*\textit{MZ}}_2 = A + C + E_2 \\
+$$
 
 For dizygotic (DZ) twins, with only $C$ completely shared and $A$ shared
 at a half, the model is
 
-$$Y^{*\textit{DZ}}_1 = A_1 + C + E_1 \\
-Y^{*\textit{DZ}}_2 = A_2 + C + E_2, \\$$
+$$
+Y^{*\textit{DZ}}_1 = A_1 + C + E_1 \\
+Y^{*\textit{DZ}}_2 = A_2 + C + E_2, \\
+$$
 
 where $A_1$ and $A_2$ have a correlation of 0.5. Note that measurement
 error is not directly incorporated in the model with a single phenotype,
@@ -46,8 +50,10 @@ proportion of variance explained by $C$. At the population level, given
 the twin correlations $\rho^\textit{MZ}$ and $\rho^\textit{DZ}$, we have
 the following well-known result:
 
-$$h^2 = 2(\rho^\textit{MZ} - \rho^\textit{DZ}) \\
-c^2 = 2\rho^\textit{DZ} - \rho^\textit{MZ} \\$$
+$$
+h^2 = 2(\rho^\textit{MZ} - \rho^\textit{DZ}) \\
+c^2 = 2\rho^\textit{DZ} - \rho^\textit{MZ} \\
+$$
 
 which is also described in Jöreskog (2020).
 
@@ -63,8 +69,11 @@ library(umx)
       mxOption(key='Number of Threads', value=parallel::detectCores()) #now
       Sys.setenv(OMP_NUM_THREADS=parallel::detectCores()) #before library(OpenMx)
 
-    For an overview type '?umx'
+    Registered S3 method overwritten by 'quantmod':
+      method            from
+      as.zoo.data.frame zoo 
 
+    For an overview type '?umx'
 
     Attaching package: 'umx'
 
@@ -130,79 +139,61 @@ m1 <- umxACE(
 
     Running ACE with 4 parameters
 
-
     Beginning initial fit attempt
 
     Running ACE with 4 parameters
 
-
      Lowest minimum so far:  5867.41909499216
-
 
     Beginning fit attempt 1 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
-
-     Lowest minimum so far:  5867.41909499157
-
+     Lowest minimum so far:  5867.41909499162
 
     Beginning fit attempt 2 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
-
-     Lowest minimum so far:  5867.41909499154
-
+     Lowest minimum so far:  5867.41909499157
 
     Beginning fit attempt 3 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
-
-     Lowest minimum so far:  5867.41909499152
-
-
     Beginning fit attempt 4 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
-
 
     Beginning fit attempt 5 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
+     Lowest minimum so far:  5867.41909499155
 
     Beginning fit attempt 6 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
-
     Beginning fit attempt 7 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
+     Lowest minimum so far:  5867.41909499153
 
     Beginning fit attempt 8 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
-
     Beginning fit attempt 9 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
-
 
     Beginning fit attempt 10 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
-
-     Lowest minimum so far:  5867.41909499151
-
-
     Retry limit reached
-
 
     Solution found
 
@@ -210,16 +201,13 @@ m1 <- umxACE(
 
     Running ACE with 4 parameters
 
-
      Solution found!  Final fit=5867.4191 (started at 5907.4077)  (11 attempt(s): 11 valid, 0 errors)
 
      Start values from best fit:
 
-    0.00683760159632739,0.845202352012643,0.321951284256707,0.436191553246447
+    0.0068375859879446,0.845202399455705,0.321951306511955,0.43619159878987
 
     ACE -2 × log(Likelihood) = 5867.419
-
-
 
     Table: Standardized parameter estimates from a 1-factor Cholesky ACE model. A: additive genetic; C: common environment; E: unique environment.
 
@@ -236,8 +224,6 @@ m1 <- umxACE(
 
     Creating CI-based report!
 
-
-
     |     |a1 |c1 |e1                   |
     |:----|:--|:--|:--------------------|
     |twin |   |   |0.434 [0.394, 0.478] |
@@ -249,7 +235,6 @@ m1 <- umxACE(
     |:---------|-----:|-----:|
     |intercept | 0.007| 0.007|
 
-
     ?umxPlotACE options: std=T/F, means=T/F, digits=n, strip_zero=T/F, file=, min=, max =
 
 ``` r
@@ -257,8 +242,6 @@ umxSummary(m1)
 ```
 
     ACE -2 × log(Likelihood) = 5867.42
-
-
 
     Table: Standardized parameter estimates from a 1-factor Cholesky ACE model. A: additive genetic; C: common environment; E: unique environment.
 
@@ -275,8 +258,6 @@ umxSummary(m1)
 
     Creating CI-based report!
 
-
-
     |     |a1 |c1 |e1                |
     |:----|:--|:--|:-----------------|
     |twin |   |   |0.43 [0.39, 0.48] |
@@ -287,7 +268,6 @@ umxSummary(m1)
     |          | twin1| twin2|
     |:---------|-----:|-----:|
     |intercept |  0.01|  0.01|
-
 
     ?umxPlotACE options: std=T/F, means=T/F, digits=n, strip_zero=T/F, file=, min=, max =
 
@@ -346,7 +326,13 @@ paths <- list(
         label = c("a", "c", "e")
     ),
     # thresholds
-    mxThreshold(vars = ovs, nThresh = 2)
+    mxThreshold(
+        vars = ovs,
+        nThresh = 2,
+        free = TRUE,
+        values = c(-1, 1),
+        labels = c("t1", "t2")
+    )
 )
 model_mz <- mxModel(
     "MZ",
@@ -377,7 +363,7 @@ model_ace <- mxModel(
 ace_fit <- mxRun(model_ace)
 ```
 
-    Running ACE with 3 parameters
+    Running ACE with 5 parameters
 
 ``` r
 summary(ace_fit)
@@ -386,25 +372,27 @@ summary(ace_fit)
     Summary of ACE 
      
     free parameters:
-      name matrix   row col  Estimate  Std.Error A
-    1    a   MZ.A twin1  A1 0.7906171 0.05035096  
-    2    c   MZ.A twin1  C1 0.4329848 0.08285485  
-    3    e   MZ.A twin1  E1 0.3900471 0.01903257  
+      name        matrix   row   col   Estimate Std.Error A
+    1    a          MZ.A twin1    A1  1.3321986 238.89659  
+    2    c          MZ.A twin1    C1  0.5074582  91.00048  
+    3    e          MZ.A twin1    E1  0.6875209 123.28982  
+    4   t1 MZ.Thresholds     1 twin1 -0.1216062  21.80706  
+    5   t2 MZ.Thresholds     2 twin1  1.3800036 247.46932  
 
     Model Statistics: 
                    |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
-           Model:              3                   3101              6110.135
+           Model:              5                   3099              5867.419
        Saturated:             NA                     NA                    NA
     Independence:             NA                     NA                    NA
     Number of observations/statistics: 1552/3104
 
     Information Criteria: 
           |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
-    AIC:      -91.86507               6116.135                 6116.150
-    BIC:   -16673.84145               6132.177                 6122.647
+    AIC:      -330.5809               5877.419                 5877.458
+    BIC:    -16901.8627               5904.156                 5888.272
     To get additional fit indices, see help(mxRefModels)
-    timestamp: 2026-06-29 22:26:49 
-    Wall clock time: 0.07387638 secs 
+    timestamp: 2026-10-14 01:30:33 
+    Wall clock time: 0.04551291 secs 
     optimizer:  SLSQP 
     OpenMx version number: 2.22.11 
     Need help?  See help(mxSummary) 
@@ -485,7 +473,7 @@ expCovMZ <- mxAlgebra(
     name = "expCovMZ"
 )
 expCovDZ <- mxAlgebra(
-    expression = rbind(cbind(1, cDZ), cbind(t(cDZ), V)),
+    expression = rbind(cbind(1, cDZ), cbind(t(cDZ), 1)),
     name = "expCovDZ"
 )
 # Create Data Objects for Multiple Groups
@@ -556,69 +544,59 @@ ace_fit <- mxTryHardOrdinal(ace_fit, intervals = TRUE)
 
     Running ACEOrdinal with 4 parameters
 
-
     Beginning initial fit attempt
 
     Running ACEOrdinal with 4 parameters
 
      OpenMx status code 10 not in list of acceptable status codes, (0,1,5,6)
 
-
     Beginning fit attempt 1 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
 
-
-     Lowest minimum so far:  5868.07899958138
-
+     Lowest minimum so far:  5867.41909499155
 
     Beginning fit attempt 2 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
 
+     Lowest minimum so far:  5867.41909499154
 
     Beginning fit attempt 3 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
 
-
     Beginning fit attempt 4 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
-
 
     Beginning fit attempt 5 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
 
+     Lowest minimum so far:  5867.41909499153
 
     Beginning fit attempt 6 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
 
-
     Beginning fit attempt 7 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
-
 
     Beginning fit attempt 8 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
 
-
     Beginning fit attempt 9 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
-
 
     Beginning fit attempt 10 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
 
-
     Retry limit reached
-
 
     Solution found
 
@@ -626,12 +604,11 @@ ace_fit <- mxTryHardOrdinal(ace_fit, intervals = TRUE)
 
     Running ACEOrdinal with 4 parameters
 
-
-     Solution found!  Final fit=5868.079 (started at 7872.1302)  (11 attempt(s): 11 valid, 0 errors)
+     Solution found!  Final fit=5867.4191 (started at 7803.6412)  (11 attempt(s): 11 valid, 0 errors)
 
      Start values from best fit:
 
-    -0.0774832951543164,0.866385576763262,0.729496202124345,0.0828333410469867
+    -0.0768346095240241,0.871927830485795,0.708498532361741,0.102801313649745
 
 ``` r
 summary(ace_fit)
@@ -641,35 +618,141 @@ summary(ace_fit)
      
     free parameters:
       name   matrix row   col    Estimate  Std.Error A
-    1   t1 MZ.thres   1 twin1 -0.07748330 0.02681506  
-    2   t2 MZ.thres   2 twin1  0.86638558 0.03046225  
-    3 VA11    MZ.VA   1     1  0.72949620 0.08171328  
-    4 VC11    MZ.VC   1     1  0.08283334 0.07616335  
+    1   t1 MZ.thres   1 twin1 -0.07683461 0.02694969  
+    2   t2 MZ.thres   2 twin1  0.87192783 0.03062458  
+    3 VA11    MZ.VA   1     1  0.70849853 0.08304976  
+    4 VC11    MZ.VC   1     1  0.10280131 0.07757224  
 
     confidence intervals:
-              lbound   estimate    ubound note
-    VA11  0.57342306 0.72949620 0.8942383     
-    VC11 -0.07297659 0.08283334 0.2260822     
+              lbound  estimate    ubound note
+    VA11  0.55000831 0.7084985 0.8761937     
+    VC11 -0.05583271 0.1028013 0.2487363     
 
     Model Statistics: 
                    |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
-           Model:              4                   3100              5868.079
+           Model:              4                   3100              5867.419
        Saturated:             NA                     NA                    NA
     Independence:             NA                     NA                    NA
     Number of observations/statistics: 1552/3104
 
     Information Criteria: 
           |  df Penalty  |  Parameters Penalty  |  Sample-Size Adjusted
-    AIC:       -331.921               5876.079                 5876.105
-    BIC:     -16908.550               5897.468                 5884.761
+    AIC:      -332.5809               5875.419                 5875.445
+    BIC:    -16909.2100               5896.808                 5884.101
     To get additional fit indices, see help(mxRefModels)
-    timestamp: 2026-06-29 22:26:50 
-    Wall clock time: 0.1222432 secs 
+    timestamp: 2026-10-14 01:30:34 
+    Wall clock time: 0.08637857 secs 
     optimizer:  SLSQP 
     OpenMx version number: 2.22.11 
     Need help?  See help(mxSummary) 
 
-Comparison with Stan results
+Comparison with Stan results for the full data and the same 100-pair
+subsample used in the tutorial (55 MZ and 45 DZ pairs).
+
+``` r
+# Reproduce the tutorial subsample
+set.seed(1234)
+sub_n <- 100
+twin_data_sub <- twin_data[sample.int(nrow(twin_data), sub_n), ]
+m_sub <- umxACE(
+    selDVs = "twin",
+    dzData = twin_data_sub[twin_data_sub$zygosity == "DZ", ],
+    mzData = twin_data_sub[twin_data_sub$zygosity == "MZ", ],
+    sep = "",
+    tryHard = "ordinal"
+)
+```
+
+    Found 1 pair(s) of ordinal variables:'twin1' and 'twin2' (No binary)
+
+    Running ACE with 4 parameters
+
+    Beginning initial fit attempt
+
+    Running ACE with 4 parameters
+
+     Lowest minimum so far:  365.978829144973
+
+    Beginning fit attempt 1 of at maximum 10 extra tries
+
+    Running ACE with 4 parameters
+
+    Beginning fit attempt 2 of at maximum 10 extra tries
+
+    Running ACE with 4 parameters
+
+     Lowest minimum so far:  365.978829144971
+
+    Beginning fit attempt 3 of at maximum 10 extra tries
+
+    Running ACE with 4 parameters
+
+     Lowest minimum so far:  365.978829144971
+
+    Beginning fit attempt 4 of at maximum 10 extra tries
+
+    Running ACE with 4 parameters
+
+     Lowest minimum so far:  365.97882914497
+
+    Beginning fit attempt 5 of at maximum 10 extra tries
+
+    Running ACE with 4 parameters
+
+    Beginning fit attempt 6 of at maximum 10 extra tries
+
+    Running ACE with 4 parameters
+
+    Beginning fit attempt 7 of at maximum 10 extra tries
+
+    Running ACE with 4 parameters
+
+    Beginning fit attempt 8 of at maximum 10 extra tries
+
+    Running ACE with 4 parameters
+
+    Beginning fit attempt 9 of at maximum 10 extra tries
+
+    Running ACE with 4 parameters
+
+    Beginning fit attempt 10 of at maximum 10 extra tries
+
+    Running ACE with 4 parameters
+
+    Retry limit reached
+
+    Solution found
+
+    Final run, for Hessian and/or standard errors and/or confidence intervals
+
+    Running ACE with 4 parameters
+
+     Solution found!  Final fit=365.97883 (started at 370.92682)  (11 attempt(s): 11 valid, 0 errors)
+
+     Start values from best fit:
+
+    -0.024758927371081,0.934118071479837,0,0.471878643174057
+
+    ACE -2 × log(Likelihood) = 365.979
+
+    Table: Standardized parameter estimates from a 1-factor Cholesky ACE model. A: additive genetic; C: common environment; E: unique environment.
+
+    |     |    a1|c1 |    e1|
+    |:----|-----:|:--|-----:|
+    |twin | 0.893|.  | 0.451|
+
+
+    Table: Means (from model$top$expMean)
+
+    |          |  twin1|  twin2|
+    |:---------|------:|------:|
+    |intercept | -0.025| -0.025|
+
+    ?umxPlotACE options: std=T/F, means=T/F, digits=n, strip_zero=T/F, file=, min=, max =
+
+OpenMx estimates and profile-likelihood intervals below are for
+standardized variance proportions, rather than unstandardized squared
+paths. An em dash indicates an unavailable interval endpoint.
 
 ``` r
 stan_ace_fit <- readRDS(here::here("notebooks", "ace_fit_full.rds"))
@@ -688,34 +771,78 @@ stan_ace_s_res <- stan_ace_s_fit$summary(
     posterior::quantile2,
     hdi2
 )
-umx_ci <- umxCI(
-    m1,
-    which = c("a_r1c1", "c_r1c1", "e_r1c1"),
-    run = "yes",
-    interval = 0.90
+stan_ace_sub_fit <- readRDS(here::here("notebooks", "ace_fit.rds"))
+stan_ace_s_sub_fit <- readRDS(here::here("notebooks", "ace_s_fit.rds"))
+stan_ace_sub_res <- stan_ace_sub_fit$summary(
+    c("h2", "c2", "e2"),
+    mean,
+    median,
+    posterior::quantile2,
+    hdi2
 )
+stan_ace_s_sub_res <- stan_ace_s_sub_fit$summary(
+    c("h2", "c2", "e2"),
+    mean,
+    median,
+    posterior::quantile2,
+    hdi2
+)
+
+ace_proportion_ci <- function(model) {
+    # Request intervals directly on the proportions, not on path coefficients.
+    if (length(model$intervals) > 0) {
+        model <- mxModel(model, mxCI(names(model$intervals)), remove = TRUE)
+    }
+    model <- mxModel(
+        model,
+        mxAlgebra(top.A / top.Vtot, name = "h2_ace"),
+        mxAlgebra(top.C / top.Vtot, name = "c2_ace"),
+        mxAlgebra(top.E / top.Vtot, name = "e2_ace")
+    )
+    targets <- c("h2_ace[1,1]", "c2_ace[1,1]", "e2_ace[1,1]")
+    model_ci <- umxCI(model, which = targets, run = "yes", interval = 0.90)
+    targets <- paste0(model_ci$name, ".", targets)
+    res <- model_ci$output$confidenceIntervals[
+        targets,
+        c("estimate", "lbound", "ubound")
+    ]
+    codes <- model_ci$output$confidenceIntervalCodes[targets, , drop = FALSE]
+    for (bound in c("lbound", "ubound")) {
+        failed <- is.na(codes[, bound]) |
+            codes[, bound] != 0 |
+            !is.finite(res[, bound])
+        res[failed, bound] <- NA_real_
+    }
+    rownames(res) <- c("h2", "c2", "e2")
+    res
+}
+umx_res <- ace_proportion_ci(m1)
 ```
 
     Running ACE with 4 parameters
 
-                   lbound estimate ubound lbound Code ubound Code
-    top.a_std[1,1]  0.741    0.842     NA           0          NA
-    top.c_std[1,1]     NA    0.321  0.499          NA           0
-    top.e_std[1,1]  0.394    0.434  0.478           0           0
-    a_r1c1          0.755    0.845  0.935           0           0
-    c_r1c1             NA    0.322  0.482          NA           0
-    e_r1c1          0.402    0.436  0.473           3           3
+                    lbound estimate ubound lbound Code ubound Code
+    ACE.h2_ace[1,1]  0.575    0.708     NA           0          NA
+    ACE.c2_ace[1,1]     NA    0.103  0.226          NA           0
+    ACE.e2_ace[1,1]  0.160    0.189  0.221           0           0
     [1] "NA: "
-    [1] "3: The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution."
 
     Table: Computed CIs in model ACE
 
 ``` r
-umx_res <- umx_ci$output$confidenceIntervals[
-    c("a_r1c1", "c_r1c1", "e_r1c1"),
-    c("estimate", "lbound", "ubound")
-]^2
+umx_sub_res <- ace_proportion_ci(m_sub)
 ```
+
+    Running ACE with 4 parameters
+
+                    lbound estimate ubound lbound Code ubound Code
+    ACE.h2_ace[1,1]     NA    0.797     NA          NA          NA
+    ACE.c2_ace[1,1]     NA    0.000  0.261          NA           3
+    ACE.e2_ace[1,1]     NA    0.203     NA          NA          NA
+    [1] "NA: "
+    [1] "3: The nonlinear constraints and bounds could not be satisfied. The problem may have no feasible solution."
+
+    Table: Computed CIs in model ACE
 
 ``` r
 drop_leading_zero <- function(x) sub("^(-?)0\\.", "\\1.", x)
@@ -723,122 +850,150 @@ drop_leading_zero <- function(x) sub("^(-?)0\\.", "\\1.", x)
 fmt_num <- function(x) drop_leading_zero(sprintf("%.3f", x))
 
 fmt_ci <- function(lo, hi) {
-    lo_str <- if (is.na(lo)) {
-        "\u2014"
-    } else {
-        drop_leading_zero(sprintf("%.3f", lo))
+    fmt_bound <- function(x) {
+        if (is.na(x)) "\u2014" else fmt_num(x)
     }
-    sprintf("[%s, %s]", lo_str, drop_leading_zero(sprintf("%.3f", hi)))
+    sprintf("[%s, %s]", fmt_bound(lo), fmt_bound(hi))
 }
 
-h2_rho <- stan_ace_res[stan_ace_res$variable == "h2", ]
-c2_rho <- stan_ace_res[stan_ace_res$variable == "c2", ]
-e2_rho <- stan_ace_res[stan_ace_res$variable == "e2", ]
-h2_sim <- stan_ace_s_res[stan_ace_s_res$variable == "h2", ]
-c2_sim <- stan_ace_s_res[stan_ace_s_res$variable == "c2", ]
-e2_sim <- stan_ace_s_res[stan_ace_s_res$variable == "e2", ]
+comparison_columns <- function(mx_res, rho_res, simplex_res) {
+    rows <- lapply(c("h2", "c2", "e2"), function(parameter) {
+        rho <- rho_res[rho_res$variable == parameter, ]
+        simplex <- simplex_res[simplex_res$variable == parameter, ]
+        data.frame(
+            Estimate = fmt_num(c(
+                mx_res[parameter, "estimate"],
+                rho$mean,
+                simplex$median
+            )),
+            `90% CI` = c(
+                fmt_ci(
+                    mx_res[parameter, "lbound"],
+                    mx_res[parameter, "ubound"]
+                ),
+                fmt_ci(rho$q5, rho$q95),
+                fmt_ci(simplex$hdi_lo, simplex$hdi_hi)
+            ),
+            check.names = FALSE
+        )
+    })
+    do.call(rbind, rows)
+}
 
 comp_tbl <- data.frame(
-    Model = rep(c("Mx", "Stan (unconstrained)", "Stan (simplex)"), 3),
-    Estimate = c(
-        fmt_num(umx_res["a_r1c1", "estimate"]),
-        fmt_num(h2_rho$mean),
-        fmt_num(h2_sim$median),
-        fmt_num(umx_res["c_r1c1", "estimate"]),
-        fmt_num(c2_rho$mean),
-        fmt_num(c2_sim$median),
-        fmt_num(umx_res["e_r1c1", "estimate"]),
-        fmt_num(e2_rho$mean),
-        fmt_num(e2_sim$median)
-    ),
-    `90% CI` = c(
-        fmt_ci(umx_res["a_r1c1", "lbound"], umx_res["a_r1c1", "ubound"]),
-        fmt_ci(h2_rho$q5, h2_rho$q95),
-        fmt_ci(h2_sim$hdi_lo, h2_sim$hdi_hi),
-        fmt_ci(umx_res["c_r1c1", "lbound"], umx_res["c_r1c1", "ubound"]),
-        fmt_ci(c2_rho$q5, c2_rho$q95),
-        fmt_ci(c2_sim$hdi_lo, c2_sim$hdi_hi),
-        fmt_ci(umx_res["e_r1c1", "lbound"], umx_res["e_r1c1", "ubound"]),
-        fmt_ci(e2_rho$q5, e2_rho$q95),
-        fmt_ci(e2_sim$hdi_lo, e2_sim$hdi_hi)
-    ),
+    Model = rep(c("OpenMx", "Stan (unconstrained)", "Stan (simplex)"), 3),
+    comparison_columns(umx_res, stan_ace_res, stan_ace_s_res),
+    comparison_columns(umx_sub_res, stan_ace_sub_res, stan_ace_s_sub_res),
     check.names = FALSE
 )
 
 tt(comp_tbl) |>
-    group_tt(i = list("$h^2$" = 1, "$c^2$" = 4, "$e^2$" = 7))
+    group_tt(
+        i = list("$h^2$" = 1, "$c^2$" = 4, "$e^2$" = 7),
+        j = list(
+            "Full data (N = 1,552)" = 2:3,
+            "Subsample (N = 100)" = 4:5
+        )
+    )
 ```
 
-<table style="width:69%;">
+<table style="width:96%;">
 <colgroup>
-<col style="width: 31%" />
-<col style="width: 15%" />
-<col style="width: 22%" />
+<col style="width: 28%" />
+<col style="width: 13%" />
+<col style="width: 19%" />
+<col style="width: 13%" />
+<col style="width: 20%" />
 </colgroup>
 <thead>
 <tr>
+<th></th>
+<th colspan="2">Full data (N = 1,552)</th>
+<th colspan="2">Subsample (N = 100)</th>
+</tr>
+<tr>
 <th>Model</th>
+<th>Estimate</th>
+<th>90% CI</th>
 <th>Estimate</th>
 <th>90% CI</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td colspan="3"><span
+<td colspan="5"><span
 class="math inline"><em>h</em><sup>2</sup></span></td>
 </tr>
 <tr>
-<td>Mx</td>
-<td>.714</td>
-<td>[.571, .875]</td>
+<td>OpenMx</td>
+<td>.708</td>
+<td>[.575, —]</td>
+<td>.797</td>
+<td>[—, —]</td>
 </tr>
 <tr>
 <td>Stan (unconstrained)</td>
-<td>.709</td>
-<td>[.573, .846]</td>
+<td>.710</td>
+<td>[.576, .850]</td>
+<td>1.194</td>
+<td>[.604, 1.822]</td>
 </tr>
 <tr>
 <td>Stan (simplex)</td>
-<td>.699</td>
-<td>[.588, .810]</td>
+<td>.698</td>
+<td>[.587, .810]</td>
+<td>.631</td>
+<td>[.342, .847]</td>
 </tr>
 <tr>
-<td colspan="3"><span
+<td colspan="5"><span
 class="math inline"><em>c</em><sup>2</sup></span></td>
 </tr>
 <tr>
-<td>Mx</td>
-<td>.104</td>
-<td>[—, .233]</td>
+<td>OpenMx</td>
+<td>.103</td>
+<td>[—, .226]</td>
+<td>.000</td>
+<td>[—, —]</td>
 </tr>
 <tr>
 <td>Stan (unconstrained)</td>
-<td>.100</td>
-<td>[-.030, .224]</td>
+<td>.098</td>
+<td>[-.034, .221]</td>
+<td>-.426</td>
+<td>[-1.019, .126]</td>
 </tr>
 <tr>
 <td>Stan (simplex)</td>
+<td>.109</td>
+<td>[.002, .202]</td>
 <td>.110</td>
-<td>[.001, .203]</td>
+<td>[.000, .327]</td>
 </tr>
 <tr>
-<td colspan="3"><span
+<td colspan="5"><span
 class="math inline"><em>e</em><sup>2</sup></span></td>
 </tr>
 <tr>
-<td>Mx</td>
-<td>.190</td>
-<td>[.162, .224]</td>
+<td>OpenMx</td>
+<td>.189</td>
+<td>[.160, .221]</td>
+<td>.203</td>
+<td>[—, —]</td>
 </tr>
 <tr>
 <td>Stan (unconstrained)</td>
 <td>.192</td>
-<td>[.161, .225]</td>
+<td>[.163, .225]</td>
+<td>.233</td>
+<td>[.123, .380]</td>
 </tr>
 <tr>
 <td>Stan (simplex)</td>
 <td>.191</td>
-<td>[.163, .224]</td>
+<td>[.161, .221]</td>
+<td>.241</td>
+<td>[.106, .390]</td>
 </tr>
 </tbody>
 </table>

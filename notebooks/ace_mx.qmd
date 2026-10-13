@@ -151,7 +151,13 @@ paths <- list(
         label = c("a", "c", "e")
     ),
     # thresholds
-    mxThreshold(vars = ovs, nThresh = 2)
+    mxThreshold(
+        vars = ovs,
+        nThresh = 2,
+        free = TRUE,
+        values = c(-1, 1),
+        labels = c("t1", "t2")
+    )
 )
 model_mz <- mxModel(
     "MZ",
@@ -260,7 +266,7 @@ expCovMZ <- mxAlgebra(
     name = "expCovMZ"
 )
 expCovDZ <- mxAlgebra(
-    expression = rbind(cbind(1, cDZ), cbind(t(cDZ), V)),
+    expression = rbind(cbind(1, cDZ), cbind(t(cDZ), 1)),
     name = "expCovDZ"
 )
 # Create Data Objects for Multiple Groups
@@ -313,7 +319,23 @@ ace_fit <- mxTryHardOrdinal(ace_fit, intervals = TRUE)
 summary(ace_fit)
 ```
 
-Comparison with Stan results
+Comparison with Stan results for the full data and the same 100-pair subsample used in the tutorial (55 MZ and 45 DZ pairs).
+
+```{r}
+# Reproduce the tutorial subsample
+set.seed(1234)
+sub_n <- 100
+twin_data_sub <- twin_data[sample.int(nrow(twin_data), sub_n), ]
+m_sub <- umxACE(
+    selDVs = "twin",
+    dzData = twin_data_sub[twin_data_sub$zygosity == "DZ", ],
+    mzData = twin_data_sub[twin_data_sub$zygosity == "MZ", ],
+    sep = "",
+    tryHard = "ordinal"
+)
+```
+
+OpenMx estimates and profile-likelihood intervals below are for standardized variance proportions, rather than unstandardized squared paths. An em dash indicates an unavailable interval endpoint.
 
 ```{r}
 stan_ace_fit <- readRDS(here::here("notebooks", "ace_fit_full.rds"))
@@ -332,16 +354,53 @@ stan_ace_s_res <- stan_ace_s_fit$summary(
     posterior::quantile2,
     hdi2
 )
-umx_ci <- umxCI(
-    m1,
-    which = c("a_r1c1", "c_r1c1", "e_r1c1"),
-    run = "yes",
-    interval = 0.90
+stan_ace_sub_fit <- readRDS(here::here("notebooks", "ace_fit.rds"))
+stan_ace_s_sub_fit <- readRDS(here::here("notebooks", "ace_s_fit.rds"))
+stan_ace_sub_res <- stan_ace_sub_fit$summary(
+    c("h2", "c2", "e2"),
+    mean,
+    median,
+    posterior::quantile2,
+    hdi2
 )
-umx_res <- umx_ci$output$confidenceIntervals[
-    c("a_r1c1", "c_r1c1", "e_r1c1"),
-    c("estimate", "lbound", "ubound")
-]^2
+stan_ace_s_sub_res <- stan_ace_s_sub_fit$summary(
+    c("h2", "c2", "e2"),
+    mean,
+    median,
+    posterior::quantile2,
+    hdi2
+)
+
+ace_proportion_ci <- function(model) {
+    # Request intervals directly on the proportions, not on path coefficients.
+    if (length(model$intervals) > 0) {
+        model <- mxModel(model, mxCI(names(model$intervals)), remove = TRUE)
+    }
+    model <- mxModel(
+        model,
+        mxAlgebra(top.A / top.Vtot, name = "h2_ace"),
+        mxAlgebra(top.C / top.Vtot, name = "c2_ace"),
+        mxAlgebra(top.E / top.Vtot, name = "e2_ace")
+    )
+    targets <- c("h2_ace[1,1]", "c2_ace[1,1]", "e2_ace[1,1]")
+    model_ci <- umxCI(model, which = targets, run = "yes", interval = 0.90)
+    targets <- paste0(model_ci$name, ".", targets)
+    res <- model_ci$output$confidenceIntervals[
+        targets,
+        c("estimate", "lbound", "ubound")
+    ]
+    codes <- model_ci$output$confidenceIntervalCodes[targets, , drop = FALSE]
+    for (bound in c("lbound", "ubound")) {
+        failed <- is.na(codes[, bound]) |
+            codes[, bound] != 0 |
+            !is.finite(res[, bound])
+        res[failed, bound] <- NA_real_
+    }
+    rownames(res) <- c("h2", "c2", "e2")
+    res
+}
+umx_res <- ace_proportion_ci(m1)
+umx_sub_res <- ace_proportion_ci(m_sub)
 ```
 
 ```{r}
@@ -352,48 +411,49 @@ drop_leading_zero <- function(x) sub("^(-?)0\\.", "\\1.", x)
 fmt_num <- function(x) drop_leading_zero(sprintf("%.3f", x))
 
 fmt_ci <- function(lo, hi) {
-    lo_str <- if (is.na(lo)) {
-        "\u2014"
-    } else {
-        drop_leading_zero(sprintf("%.3f", lo))
+    fmt_bound <- function(x) {
+        if (is.na(x)) "\u2014" else fmt_num(x)
     }
-    sprintf("[%s, %s]", lo_str, drop_leading_zero(sprintf("%.3f", hi)))
+    sprintf("[%s, %s]", fmt_bound(lo), fmt_bound(hi))
 }
 
-h2_rho <- stan_ace_res[stan_ace_res$variable == "h2", ]
-c2_rho <- stan_ace_res[stan_ace_res$variable == "c2", ]
-e2_rho <- stan_ace_res[stan_ace_res$variable == "e2", ]
-h2_sim <- stan_ace_s_res[stan_ace_s_res$variable == "h2", ]
-c2_sim <- stan_ace_s_res[stan_ace_s_res$variable == "c2", ]
-e2_sim <- stan_ace_s_res[stan_ace_s_res$variable == "e2", ]
+comparison_columns <- function(mx_res, rho_res, simplex_res) {
+    rows <- lapply(c("h2", "c2", "e2"), function(parameter) {
+        rho <- rho_res[rho_res$variable == parameter, ]
+        simplex <- simplex_res[simplex_res$variable == parameter, ]
+        data.frame(
+            Estimate = fmt_num(c(
+                mx_res[parameter, "estimate"],
+                rho$mean,
+                simplex$median
+            )),
+            `90% CI` = c(
+                fmt_ci(
+                    mx_res[parameter, "lbound"],
+                    mx_res[parameter, "ubound"]
+                ),
+                fmt_ci(rho$q5, rho$q95),
+                fmt_ci(simplex$hdi_lo, simplex$hdi_hi)
+            ),
+            check.names = FALSE
+        )
+    })
+    do.call(rbind, rows)
+}
 
 comp_tbl <- data.frame(
-    Model = rep(c("Mx", "Stan (unconstrained)", "Stan (simplex)"), 3),
-    Estimate = c(
-        fmt_num(umx_res["a_r1c1", "estimate"]),
-        fmt_num(h2_rho$mean),
-        fmt_num(h2_sim$median),
-        fmt_num(umx_res["c_r1c1", "estimate"]),
-        fmt_num(c2_rho$mean),
-        fmt_num(c2_sim$median),
-        fmt_num(umx_res["e_r1c1", "estimate"]),
-        fmt_num(e2_rho$mean),
-        fmt_num(e2_sim$median)
-    ),
-    `90% CI` = c(
-        fmt_ci(umx_res["a_r1c1", "lbound"], umx_res["a_r1c1", "ubound"]),
-        fmt_ci(h2_rho$q5, h2_rho$q95),
-        fmt_ci(h2_sim$hdi_lo, h2_sim$hdi_hi),
-        fmt_ci(umx_res["c_r1c1", "lbound"], umx_res["c_r1c1", "ubound"]),
-        fmt_ci(c2_rho$q5, c2_rho$q95),
-        fmt_ci(c2_sim$hdi_lo, c2_sim$hdi_hi),
-        fmt_ci(umx_res["e_r1c1", "lbound"], umx_res["e_r1c1", "ubound"]),
-        fmt_ci(e2_rho$q5, e2_rho$q95),
-        fmt_ci(e2_sim$hdi_lo, e2_sim$hdi_hi)
-    ),
+    Model = rep(c("OpenMx", "Stan (unconstrained)", "Stan (simplex)"), 3),
+    comparison_columns(umx_res, stan_ace_res, stan_ace_s_res),
+    comparison_columns(umx_sub_res, stan_ace_sub_res, stan_ace_s_sub_res),
     check.names = FALSE
 )
 
 tt(comp_tbl) |>
-    group_tt(i = list("$h^2$" = 1, "$c^2$" = 4, "$e^2$" = 7))
+    group_tt(
+        i = list("$h^2$" = 1, "$c^2$" = 4, "$e^2$" = 7),
+        j = list(
+            "Full data (N = 1,552)" = 2:3,
+            "Subsample (N = 100)" = 4:5
+        )
+    )
 ```

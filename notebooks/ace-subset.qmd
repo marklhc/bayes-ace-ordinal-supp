@@ -241,8 +241,8 @@ x_scale <- scale_x_continuous(
     labels = c(
         "(1,1)",
         "(2,1)+(1,2)",
-        "(2,2)",
         "(3,1)+(1,3)",
+        "(2,2)",
         "(3,2)+(2,3)",
         "(3,3)"
     )
@@ -265,6 +265,101 @@ ace_s_fit$draws("ltri_ns2_tilde", format = "matrix") |>
     ppc_intervals(y = ltri_ndz) +
     xlab("Cell (twin1, twin2)") +
     x_scale
+```
+
+```{r}
+#| warning: false
+#| label: fig-ppp-heatmap
+#| fig-cap: Posterior predictive check for each cell in the reduced contingency tables for MZ and DZ twins, in the format of mean residuals ± standard deviation (posterior predictive *p*-value).
+#| layout-ncol: 2
+#| fig-subcap:
+#|   - "MZ Twins"
+#|   - "DZ Twins"
+#| fig-width: 4.5
+#| fig-height: 4.5
+# Obtain residuals
+ntilde1 <- ace_s_fit$draws("ltri_ns1_tilde", format = "draws_df")
+ntilde2 <- ace_s_fit$draws("ltri_ns2_tilde", format = "draws_df")
+# Residual: Observed counts - Predicted counts
+res1 <- sweep(ntilde1[1:6], MARGIN = 2, ltri_nmz, FUN = \(x, y) y - x)
+res2 <- sweep(ntilde2[1:6], MARGIN = 2, ltri_ndz, FUN = \(x, y) y - x)
+# Posterior predictive p value
+ppp1 <- sapply(res1, function(x) mean(x < 0))
+ppp2 <- sapply(res2, function(x) mean(x < 0))
+
+# Prepare data for plotting MZ
+new_tab_mz <- as.table(tab_mz) # copy to preserve original
+new_tab_mz[lower.tri(new_tab_mz, diag = TRUE)] <- ltri_nmz
+new_tab_mz[upper.tri(new_tab_mz)] <- NA
+tab_mz_df <- as.data.frame(new_tab_mz)
+# Add ppp and residual values
+tab_mz_df$ppp[!is.na(tab_mz_df$Freq)] <- ppp1
+tab_mz_df$res[!is.na(tab_mz_df$Freq)] <- paste0(
+    round(colMeans(res1), 1),
+    " ± ",
+    round(apply(res1, 2, sd), 1),
+    "\n (",
+    round(ppp1, 2),
+    ")"
+)
+
+# Reverse order of twin1 for plot purposes
+tab_mz_df$twin1 <- factor(
+    tab_mz_df$twin1,
+    levels = rev(levels(tab_mz_df$twin1))
+)
+p1 <- tab_mz_df |>
+    ggplot(aes(x = twin2, y = twin1, fill = ppp)) +
+    # geom_tile to draw the graph
+    geom_tile() +
+    # Add residuals directly with geom_text()
+    geom_text(aes(label = res), na.rm = TRUE) +
+    # Put x axis on top
+    scale_x_discrete(position = "top") +
+    # Color the graph: Red for small ppp, blue for large ppp
+    # Here ppp close to zero are red, and those close to one are blue
+    # gradient2 instead of gradient gives us a "mid" color which we can make white
+    scale_fill_gradient2(
+        low = "red",
+        high = "blue",
+        mid = "lightgrey",
+        midpoint = 0.5,
+        na.value = rgb(0, 0, 0, 0),
+        limit = c(0, 1),
+        space = "Lab"
+    ) +
+    # Drop axis names
+    labs(x = NULL, y = NULL) +
+    # Remove background
+    theme_minimal() +
+    # Make cells to be square!
+    coord_fixed() +
+    # Remove grid lines and place legend at bottom
+    theme(legend.position = "bottom", panel.grid = element_blank())
+
+# Repeat for DZ
+new_tab_dz <- as.table(tab_dz) # copy to preserve original
+new_tab_dz[lower.tri(new_tab_dz, diag = TRUE)] <- ltri_ndz
+new_tab_dz[upper.tri(new_tab_dz)] <- NA
+tab_dz_df <- as.data.frame(new_tab_dz)
+# Add ppp and residual values
+tab_dz_df$ppp[!is.na(tab_dz_df$Freq)] <- ppp2
+tab_dz_df$res[!is.na(tab_dz_df$Freq)] <- paste0(
+    round(colMeans(res2), 1),
+    " ± ",
+    round(apply(res2, 2, sd), 1),
+    "\n (",
+    round(ppp2, 2),
+    ")"
+)
+# Reverse order of twin1 for plot purposes
+tab_dz_df$twin1 <- factor(
+    tab_dz_df$twin1,
+    levels = rev(levels(tab_dz_df$twin1))
+)
+p2 <- p1 + tab_dz_df # change data to DZ
+plot(p1)
+plot(p2)
 ```
 
 ### Step 6: Summarizing the posterior

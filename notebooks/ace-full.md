@@ -11,9 +11,9 @@ library(cmdstanr)
 
     - CmdStanR documentation and vignettes: mc-stan.org/cmdstanr
 
-    - CmdStan path: /home/marklai/.cmdstan/cmdstan-2.39.0
+    - CmdStan path: /home/marklai/.cmdstan/cmdstan-2.40.0
 
-    - CmdStan version: 2.39.0
+    - CmdStan version: 2.40.0
 
 ``` r
 register_knitr_engine()
@@ -21,7 +21,7 @@ options(mc.cores = min(parallel::detectCores() - 1, 4)) # Use four CPU cores for
 library(bayesplot)
 ```
 
-    This is bayesplot version 1.15.0
+    This is bayesplot version 1.16.0
 
     - Online documentation and vignettes at mc-stan.org/bayesplot
 
@@ -101,10 +101,10 @@ data {
 }
 transformed data {
   int kprime = k * (k + 1) %/% 2;
-  int N1 = sum(ltri_ns1);
-  real N1real = N1;
-  int N2 = sum(ltri_ns2);
-  real N2real = N2;
+  int N1 = sum(ltri_ns1);  // total N for mz
+  real N1real = N1;  // convert from integer to real number
+  int N2 = sum(ltri_ns2);  // total N for dz
+  real N2real = N2;  // convert from integer to real number
 }
 parameters {
   real<lower=0, upper=1> scaled_rho1;
@@ -114,37 +114,46 @@ parameters {
 transformed parameters {
   real rho1 = scaled_rho1 * 2 - 1;
   real rho2 = scaled_rho2 * 2 - 1;
-  vector<lower=0>[kprime] theta1 =
+  // Implied probabilities for each cell
+  vector<lower=0>[kprime] pi1 =
     vec_symm(polycor_to_prob(thres, rho1));
-  vector<lower=0>[kprime] theta2 =
+  vector<lower=0>[kprime] pi2 =
     vec_symm(polycor_to_prob(thres, rho2));
 }
 // The model to be estimated.
 model {
+  // prior
   scaled_rho1 ~ beta(1.5, 1.5);
   scaled_rho2 ~ beta(1.5, 1.5);
   thres ~ student_t(4, 0, 2.5);
-  ltri_ns1 ~ multinomial(theta1);
-  ltri_ns2 ~ multinomial(theta2);
+  // likelihood
+  ltri_ns1 ~ multinomial(pi1);
+  ltri_ns2 ~ multinomial(pi2);
 }
 generated quantities {
+  // Compute a^2, c^2, and e^2 from rho
   real h2 = 2 * (rho1 - rho2);
   real c2 = 2 * rho2 - rho1;
   real e2 = 1 - rho1;
-  array[kprime] int ltri_ns1_tilde = multinomial_rng(theta1, N1);
-  array[kprime] int ltri_ns2_tilde = multinomial_rng(theta2, N2);
+  // Intialize X^2 for each group
   real X2_1_samp = 0.0;
   real X2_2_samp = 0.0;
+  // Initialize X^2 > X^2_rep indicator (for posterior predictive p)
   int<lower=0, upper=1> X2_1_gt;
   int<lower=0, upper=1> X2_2_gt;
+  // Simulate new cell counts
+  array[kprime] int ltri_ns1_tilde = multinomial_rng(pi1, N1);
+  array[kprime] int ltri_ns2_tilde = multinomial_rng(pi2, N2);
   {
-    vector[kprime] N1theta = N1real .* theta1;
-    vector[kprime] N2theta = N2real .* theta2;
+    vector[kprime] N1pi1 = N1real .* pi1;
+    vector[kprime] N2pi2 = N2real .* pi2;
+    // initialize X^2_rep for each group
     real X2_1_rep = 0.0;
     real X2_2_rep = 0.0;
     for (idx in 1:kprime) {
-      real ns1_exp = N1theta[idx];
-      real ns2_exp = N2theta[idx];
+      real ns1_exp = N1pi1[idx];
+      real ns2_exp = N2pi2[idx];
+      // loop over each cell, and add the discrepancy to X2
       X2_1_samp += (ltri_ns1[idx] - ns1_exp)^2 / ns1_exp;
       X2_2_samp += (ltri_ns2[idx] - ns2_exp)^2 / ns2_exp;
       X2_1_rep += (ltri_ns1_tilde[idx] - ns1_exp)^2 / ns1_exp;
@@ -209,6 +218,47 @@ ace_fit <- ace$sample(
     Chain 1 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
     Chain 1 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
     Chain 1 Iteration: 2000 / 2000 [100%]  (Sampling) 
+
+    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 1 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 1 
+
+    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 1 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 1 
+
+    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 1 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 1 
+
+    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 1 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 1 
+
     Chain 2 Iteration:    1 / 2000 [  0%]  (Warmup) 
     Chain 2 Iteration:  100 / 2000 [  5%]  (Warmup) 
     Chain 2 Iteration:  200 / 2000 [ 10%]  (Warmup) 
@@ -234,7 +284,7 @@ ace_fit <- ace$sample(
 
     Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 2 Exception: model_866ee7e8562c33e0023a160cf1f986b8_model_namespace::log_prob: theta1[2] is -1.60957e-300, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9137d0d5d.stan', line 29, column 2 to line 30, column 43)
+    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
 
     Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -244,7 +294,7 @@ ace_fit <- ace$sample(
 
     Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 2 Exception: model_866ee7e8562c33e0023a160cf1f986b8_model_namespace::log_prob: theta2[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9137d0d5d.stan', line 31, column 2 to line 32, column 43)
+    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
 
     Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -254,7 +304,57 @@ ace_fit <- ace$sample(
 
     Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 2 Exception: model_866ee7e8562c33e0023a160cf1f986b8_model_namespace::log_prob: theta1[1] is -1.38778e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9137d0d5d.stan', line 29, column 2 to line 30, column 43)
+    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 2 
+
+    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi2[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 32, column 2 to line 33, column 43)
+
+    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 2 
+
+    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[2] is -7.51452e-301, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 2 
+
+    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 2 
+
+    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 2 
+
+    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi2[5] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 32, column 2 to line 33, column 43)
 
     Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -287,7 +387,7 @@ ace_fit <- ace$sample(
 
     Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 3 Exception: model_866ee7e8562c33e0023a160cf1f986b8_model_namespace::log_prob: theta2[1] is -2.77556e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9137d0d5d.stan', line 31, column 2 to line 32, column 43)
+    Chain 3 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
 
     Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -297,7 +397,7 @@ ace_fit <- ace$sample(
 
     Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 3 Exception: model_866ee7e8562c33e0023a160cf1f986b8_model_namespace::log_prob: theta2[1] is -3.38813e-19, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9137d0d5d.stan', line 31, column 2 to line 32, column 43)
+    Chain 3 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
 
     Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -307,7 +407,7 @@ ace_fit <- ace$sample(
 
     Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 3 Exception: model_866ee7e8562c33e0023a160cf1f986b8_model_namespace::log_prob: theta2[1] is -2.42861e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9137d0d5d.stan', line 31, column 2 to line 32, column 43)
+    Chain 3 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
 
     Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -317,7 +417,17 @@ ace_fit <- ace$sample(
 
     Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 3 Exception: model_866ee7e8562c33e0023a160cf1f986b8_model_namespace::log_prob: theta1[4] is -1.38778e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9137d0d5d.stan', line 29, column 2 to line 30, column 43)
+    Chain 3 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 3 
+
+    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 3 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
 
     Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -356,7 +466,7 @@ ace_fit <- ace$sample(
 
     Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 4 Exception: model_866ee7e8562c33e0023a160cf1f986b8_model_namespace::log_prob: theta1[4] is -4.2106e-18, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9137d0d5d.stan', line 29, column 2 to line 30, column 43)
+    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
 
     Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -366,7 +476,7 @@ ace_fit <- ace$sample(
 
     Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 4 Exception: model_866ee7e8562c33e0023a160cf1f986b8_model_namespace::log_prob: theta1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9137d0d5d.stan', line 29, column 2 to line 30, column 43)
+    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
 
     Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -374,14 +484,64 @@ ace_fit <- ace$sample(
 
     Chain 4 
 
-    Chain 1 finished in 0.2 seconds.
+    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 4 
+
+    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 4 
+
+    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 4 
+
+    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 4 
+
+    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi2[6] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a274d7045.stan', line 32, column 2 to line 33, column 43)
+
+    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 4 
+
+    Chain 1 finished in 0.1 seconds.
     Chain 2 finished in 0.1 seconds.
     Chain 3 finished in 0.1 seconds.
     Chain 4 finished in 0.1 seconds.
 
     All 4 chains finished successfully.
-    Mean chain execution time: 0.2 seconds.
-    Total execution time: 0.9 seconds.
+    Mean chain execution time: 0.1 seconds.
+    Total execution time: 0.6 seconds.
 
 ### Step 4: Check convergence
 
@@ -391,13 +551,13 @@ ace_fit$print(params)
 ```
 
      variable  mean median   sd  mad    q5   q95 rhat ess_bulk ess_tail
-     rho1      0.81   0.81 0.02 0.02  0.77  0.84 1.00     3401     3067
-     rho2      0.45   0.45 0.04 0.04  0.39  0.51 1.00     3542     2690
-     thres[1] -0.08  -0.08 0.03 0.03 -0.12 -0.03 1.00     3696     2746
-     thres[2]  0.87   0.87 0.03 0.03  0.82  0.92 1.00     4922     2874
-     h2        0.71   0.71 0.08 0.08  0.57  0.85 1.00     3633     2840
-     c2        0.10   0.10 0.08 0.08 -0.03  0.22 1.00     3590     2758
-     e2        0.19   0.19 0.02 0.02  0.16  0.23 1.00     3401     3067
+     rho1      0.81   0.81 0.02 0.02  0.78  0.84 1.00     3678     3116
+     rho2      0.45   0.45 0.04 0.04  0.39  0.51 1.00     3404     3198
+     thres[1] -0.08  -0.08 0.03 0.03 -0.12 -0.03 1.00     3496     3183
+     thres[2]  0.87   0.87 0.03 0.03  0.82  0.92 1.00     6037     3465
+     h2        0.71   0.71 0.08 0.09  0.58  0.85 1.00     3615     2968
+     c2        0.10   0.10 0.08 0.08 -0.03  0.22 1.00     3490     3124
+     e2        0.19   0.19 0.02 0.02  0.16  0.22 1.00     3678     3116
 
 ``` r
 ace_fit$diagnostic_summary()
@@ -410,7 +570,7 @@ ace_fit$diagnostic_summary()
     [1] 0 0 0 0
 
     $ebfmi
-    [1] 1.059781 1.086534 1.067425 1.050812
+    [1] 0.9564986 1.0288214 1.2143368 1.0661912
 
 ``` r
 ace_fit$draws(params) |>
@@ -449,10 +609,10 @@ data {
 }
 transformed data {
   int kprime = k * (k + 1) %/% 2;
-  int N1 = sum(ltri_ns1);
-  real N1real = N1;
-  int N2 = sum(ltri_ns2);
-  real N2real = N2;
+  int N1 = sum(ltri_ns1);  // total N for mz
+  real N1real = N1;  // convert from integer to real number
+  int N2 = sum(ltri_ns2);  // total N for dz
+  real N2real = N2;  // convert from integer to real number
 }
 parameters {
   simplex[3] ace;
@@ -461,35 +621,45 @@ parameters {
 transformed parameters {
   real rho1 = ace[1] + ace[2];
   real rho2 = ace[1] / 2 + ace[2];
-  vector<lower=0>[kprime] theta1 =
+  // Implied probabilities for each cell
+  vector<lower=0>[kprime] pi1 =
     vec_symm(polycor_to_prob(thres, rho1));
-  vector<lower=0>[kprime] theta2 =
+  vector<lower=0>[kprime] pi2 =
     vec_symm(polycor_to_prob(thres, rho2));
 }
 // The model to be estimated.
 model {
+  // prior
+  ace ~ dirichlet([1, 1, 1]');
   thres ~ student_t(4, 0, 2.5);
-  ltri_ns1 ~ multinomial(theta1);
-  ltri_ns2 ~ multinomial(theta2);
+  // likelihood
+  ltri_ns1 ~ multinomial(pi1);
+  ltri_ns2 ~ multinomial(pi2);
 }
 generated quantities {
+  // Extract the simplex parameter into a^2, c^2, and e^2
   real h2 = ace[1];
   real c2 = ace[2];
   real e2 = ace[3];
-  array[kprime] int ltri_ns1_tilde = multinomial_rng(theta1, N1);
-  array[kprime] int ltri_ns2_tilde = multinomial_rng(theta2, N2);
+  // Intialize X^2 for each group
   real X2_1_samp = 0.0;
   real X2_2_samp = 0.0;
+  // Initialize X^2 > X^2_rep indicator (for posterior predictive p)
   int<lower=0, upper=1> X2_1_gt;
   int<lower=0, upper=1> X2_2_gt;
+  // Simulate new cell counts
+  array[kprime] int ltri_ns1_tilde = multinomial_rng(pi1, N1);
+  array[kprime] int ltri_ns2_tilde = multinomial_rng(pi2, N2);
   {
-    vector[kprime] N1theta = N1real .* theta1;
-    vector[kprime] N2theta = N2real .* theta2;
+    vector[kprime] N1pi1 = N1real .* pi1;
+    vector[kprime] N2pi2 = N2real .* pi2;
+    // initialize X^2_rep for each group
     real X2_1_rep = 0.0;
     real X2_2_rep = 0.0;
     for (idx in 1:kprime) {
-      real ns1_exp = N1theta[idx];
-      real ns2_exp = N2theta[idx];
+      real ns1_exp = N1pi1[idx];
+      real ns2_exp = N2pi2[idx];
+      // loop over each cell, and add the discrepancy to X2
       X2_1_samp += (ltri_ns1[idx] - ns1_exp)^2 / ns1_exp;
       X2_2_samp += (ltri_ns2[idx] - ns2_exp)^2 / ns2_exp;
       X2_1_rep += (ltri_ns1_tilde[idx] - ns1_exp)^2 / ns1_exp;
@@ -543,7 +713,7 @@ ace_s_fit <- ace_simplex$sample(
 
     Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 1 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -553,7 +723,7 @@ ace_s_fit <- ace_simplex$sample(
 
     Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 1 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -563,7 +733,57 @@ ace_s_fit <- ace_simplex$sample(
 
     Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 1 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 1 
+
+    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 1 
+
+    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 1 
+
+    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 1 
+
+    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 1 
+
+    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -596,7 +816,7 @@ ace_s_fit <- ace_simplex$sample(
 
     Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 2 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[2] is -3.37038e-34, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -606,7 +826,7 @@ ace_s_fit <- ace_simplex$sample(
 
     Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 2 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[2] is -4.14382e-260, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -616,7 +836,7 @@ ace_s_fit <- ace_simplex$sample(
 
     Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 2 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[2] is -1.25185e-33, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -626,7 +846,57 @@ ace_s_fit <- ace_simplex$sample(
 
     Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 2 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 2 
+
+    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[2] is -1.93894e-260, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 2 
+
+    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 2 
+
+    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 2 
+
+    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 2 
+
+    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -638,8 +908,9 @@ ace_s_fit <- ace_simplex$sample(
 
     Chain 3   Error evaluating the log probability at the initial value.
 
-    Chain 3 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
-    Chain 3 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -9.71445e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -9.71445e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 3 Iteration:    1 / 2000 [  0%]  (Warmup) 
     Chain 3 Iteration:  100 / 2000 [  5%]  (Warmup) 
@@ -659,14 +930,10 @@ ace_s_fit <- ace_simplex$sample(
     Chain 3 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
     Chain 3 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
     Chain 3 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-    Chain 3 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-    Chain 3 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-    Chain 3 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-    Chain 3 Iteration: 2000 / 2000 [100%]  (Sampling) 
 
     Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 3 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -676,7 +943,47 @@ ace_s_fit <- ace_simplex$sample(
 
     Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 3 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 3 
+
+    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 3 
+
+    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 3 
+
+    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 3 
+
+    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -702,14 +1009,60 @@ ace_s_fit <- ace_simplex$sample(
     Chain 4 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
     Chain 4 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
     Chain 4 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-    Chain 4 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-    Chain 4 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-    Chain 4 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-    Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
 
     Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
 
-    Chain 4 Exception: model_93ef3acf7b75b551c6a5bfbdc575938a_model_namespace::log_prob: theta1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpREiYMN/model-942e9dc2d6b5.stan', line 29, column 2 to line 30, column 43)
+    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 4 
+
+    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi2[1] is -1.26711e-117, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 32, column 2 to line 33, column 43)
+
+    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 4 
+
+    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 4 
+
+    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 4 
+
+    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
+
+    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
+
+    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
+
+    Chain 4 
+
+    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
+
+    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpxXoOdm/model-1699a660dfcd7.stan', line 30, column 2 to line 31, column 43)
 
     Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
 
@@ -718,13 +1071,21 @@ ace_s_fit <- ace_simplex$sample(
     Chain 4 
 
     Chain 1 finished in 0.3 seconds.
-    Chain 2 finished in 0.3 seconds.
+    Chain 2 finished in 0.2 seconds.
+    Chain 3 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
+    Chain 3 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
+    Chain 3 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
+    Chain 3 Iteration: 2000 / 2000 [100%]  (Sampling) 
     Chain 3 finished in 0.3 seconds.
-    Chain 4 finished in 0.3 seconds.
+    Chain 4 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
+    Chain 4 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
+    Chain 4 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
+    Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
+    Chain 4 finished in 0.2 seconds.
 
     All 4 chains finished successfully.
-    Mean chain execution time: 0.3 seconds.
-    Total execution time: 0.8 seconds.
+    Mean chain execution time: 0.2 seconds.
+    Total execution time: 0.5 seconds.
 
 ``` r
 ace_s_fit$summary(params) |>
@@ -739,13 +1100,13 @@ Table 1: Posterior summary of the main model parameters
 
 | variable   |  mean | median |   sd |  mad |    q5 |   q95 | rhat | ess_bulk | ess_tail |
 |:-----------|------:|-------:|-----:|-----:|------:|------:|-----:|---------:|---------:|
-| rho1       |  0.81 |   0.81 | 0.02 | 0.02 |  0.78 |  0.84 |    1 |  4296.22 |  3068.38 |
-| rho2       |  0.46 |   0.46 | 0.03 | 0.03 |  0.41 |  0.52 |    1 |  1425.42 |  1159.38 |
-| thres\[1\] | -0.08 |  -0.08 | 0.03 | 0.03 | -0.12 | -0.03 |    1 |  1909.01 |  1690.90 |
-| thres\[2\] |  0.87 |   0.87 | 0.03 | 0.03 |  0.82 |  0.92 |    1 |  2781.60 |  2396.95 |
-| h2         |  0.69 |   0.70 | 0.07 | 0.07 |  0.57 |  0.80 |    1 |  1394.46 |  1249.69 |
-| c2         |  0.12 |   0.11 | 0.06 | 0.07 |  0.02 |  0.23 |    1 |  1245.87 |   794.18 |
-| e2         |  0.19 |   0.19 | 0.02 | 0.02 |  0.16 |  0.22 |    1 |  4296.22 |  3068.38 |
+| rho1       |  0.81 |   0.81 | 0.02 | 0.02 |  0.78 |  0.84 |    1 |  4419.18 |  3185.97 |
+| rho2       |  0.46 |   0.46 | 0.03 | 0.03 |  0.41 |  0.52 |    1 |  1168.77 |  1371.19 |
+| thres\[1\] | -0.08 |  -0.08 | 0.03 | 0.03 | -0.12 | -0.03 |    1 |  2166.43 |  2188.17 |
+| thres\[2\] |  0.87 |   0.87 | 0.03 | 0.03 |  0.82 |  0.92 |    1 |  3012.89 |  1934.80 |
+| h2         |  0.69 |   0.70 | 0.07 | 0.08 |  0.57 |  0.80 |    1 |  1205.91 |  1213.26 |
+| c2         |  0.11 |   0.11 | 0.06 | 0.07 |  0.02 |  0.23 |    1 |  1043.27 |   777.09 |
+| e2         |  0.19 |   0.19 | 0.02 | 0.02 |  0.16 |  0.22 |    1 |  4419.18 |  3185.97 |
 
 </div>
 
@@ -761,8 +1122,8 @@ x_scale <- scale_x_continuous(
     labels = c(
         "(1,1)",
         "(2,1)+(1,2)",
-        "(2,2)",
         "(3,1)+(1,3)",
+        "(2,2)",
         "(3,2)+(2,3)",
         "(3,3)"
     )
@@ -775,11 +1136,6 @@ ace_s_fit$draws("ltri_ns1_tilde", format = "matrix") |>
     xlab("Cell (twin1, twin2)") +
     x_scale
 ```
-
-    Warning: Using `size` aesthetic for lines was deprecated in ggplot2 3.4.0.
-    ℹ Please use `linewidth` instead.
-    ℹ The deprecated feature was likely used in the bayesplot package.
-      Please report the issue at <https://github.com/stan-dev/bayesplot/issues/>.
 
 <div id="fig-ppc-intervals-mz">
 

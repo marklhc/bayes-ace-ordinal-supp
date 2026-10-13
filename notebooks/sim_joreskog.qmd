@@ -1,238 +1,336 @@
 ---
 title: "Simulation results"
+format: typst
 echo: false
 warning: false
 ---
 
-The simulation is based on the ACE model with the same parameters as in the Jöreskog example, but with smaller sample sizes (50 and 100 pairs), and with 2,500 replications. The results are stored in `simulation/sim_ace_joreskog-1.rds`, and the code to run the simulation is in `simulation/sim_ace_joreskog.R`. The methods compared are:
+This empirical-resampling evaluation uses the symmetrized Jöreskog BMI twin tables as the data-generating distributions. It includes 50, 100, and 500 pairs per zygosity group. The stored output, `simulation/sim_ace_joreskog-2.rds`, reports 2,400 analyzed replications per condition. The design is an empirical-resampling evaluation, not a simulation from known ACE parameters: the reference values are two-step polychoric estimates from the symmetrized tables, and the generating distributions need not satisfy the fitted Gaussian liability model with common thresholds.
 
-- Stan with simplex parameterization (`stan`)
-- Stan with unbounded parameterization (`stan_nc`)
-- umx with default settings (`umx`)
+The methods are Stan with simplex ACE proportions (`stan`), Stan with a regularizing simplex prior (`stan_reg`), Stan with unrestricted twin correlations (`stan_nc`), and UMX/OpenMx (`umx`). All three Stan models use standard-normal threshold priors; their ACE/correlation priors and parameter spaces differ. In Stan, convergence requires no divergent transitions, $\hat R < 1.01$, and bulk effective sample size greater than 400 for the reported ACE quantities. Stan retries with increasing `adapt_delta` and `max_treedepth`. UMX convergence records successful optimizer status and finite estimates; standard-error availability, boundary estimates, and profile-interval success are distinct outcomes. A zero variance component is an admissible boundary estimate. Point-estimate metrics use accepted fits; interval coverage and width use fits with available intervals. The reported interval counts make those denominators explicit.
 
-For Stan, convergence was achieved if there were no divergent transitions, the $\hat R$ values were less than 1.01, and the effective sample size was greater than 400. When divergent transitions were present, we reran the Stan NUTS sampler up to three times by increasing the `adapt_delta` parameter from 0.8 (default) to 0.90, 0.95, and 0.99, and the corresponding `max_treedepth` from 10 (default) to 12 and 15. For umx, convergence was considered achieved if the optimization algorithm converged and the Hessian matrix was positive definite, so that both point and standard errors could be computed. For all methods, we considered estimates to be admissible if (in the case of Stan, the posterior means of) both $h^2$ and $c^2$ were between 0 and 1, and their sum was less than or equal to 1.
+In the tables, **Simplex**, **Regularized simplex**, and **Unrestricted** denote the three Stan methods above, and **UMX** denotes UMX/OpenMx. All reported intervals have nominal 90% coverage. Stan point estimates are posterior means.
 
 ```{r}
 #| message: false
 library(dplyr)
-library(tidyr)
 library(tinytable)
 library(ggplot2)
-res <- readRDS(here::here("simulation/sim_ace_joreskog-1.rds"))
+
+res <- readRDS(here::here("simulation/sim_ace_joreskog-2.rds"))
+methods <- c("stan", "stan_reg", "stan_nc", "umx")
+method_labels <- c(
+    stan = "Simplex",
+    stan_reg = "Regularized simplex",
+    stan_nc = "Unrestricted",
+    umx = "UMX"
+)
 ```
 
 ```{r}
-res_long <- res |>
-    select(
-        -(REPLICATIONS:ERRORS)
-    ) |>
-    rename_with(
-        ~ gsub("(ciwidth|coverage)\\.umx", "\\1_hdi.umx", .x)
-    ) |>
-    rename_with(
-        ~ gsub("_wald\\.umx", ".umx", .x)
-    ) |>
-    pivot_longer(
-        -n_pairs,
-        names_to = c("metric", ".value"),
-        names_pattern = "(.*)\\.(.*)"
-    ) |>
-    pivot_wider(
-        names_from = n_pairs,
-        values_from = stan:umx
-    )
-res_long2 <- res_long |>
-    select(metric, stan_50, stan_nc_50, umx_50, stan_100, stan_nc_100, umx_100)
-```
-
-```{r}
-#| label: tbl-conv-admiss
-#| tbl-cap: "Convergence and admissibility rates"
-res_long2 |>
-    filter(grepl("converge|admissible", metric)) |>
-    mutate(across(-metric, ~ .x * 100)) |>
-    `colnames<-`(c(
-        "metric",
-        "Stan (simplex)",
-        "Stan (unbounded)",
-        "umx",
-        "Stan (simplex)",
-        "Stan (unbounded)",
-        "umx"
-    )) |>
-    tt() |>
-    group_tt(
-        j = list(
-            "n = 50" = 2:4,
-            "n = 100" = 5:7
+sim_summary <- bind_rows(lapply(seq_len(nrow(res)), function(i) {
+    n <- res$n_pairs[i]
+    bind_rows(lapply(methods, function(method_code) {
+        value <- function(name) res[[paste0(name, ".", method_code)]][i]
+        tibble(
+            n_pairs = n,
+            method_code = method_code,
+            method = unname(method_labels[method_code]),
+            attempted = value("n_attempted"),
+            accepted = value("n_accepted"),
+            convergence = value("converge_rate"),
+            admissible = value("admissible_rate"),
+            c2_boundary = if (method_code == "umx") {
+                value("boundary_c2_rate")
+            } else {
+                NA_real_
+            },
+            h2_bias = value("h2_bias"),
+            c2_bias = value("c2_bias"),
+            h2_rmse = value("h2_rmse"),
+            c2_rmse = value("c2_rmse"),
+            h2_ci_width = value("h2_ciwidth"),
+            c2_ci_width = value("c2_ciwidth"),
+            h2_coverage = value("h2_coverage"),
+            c2_coverage = value("c2_coverage"),
+            h2_ci_n = value("h2_n_ci"),
+            c2_ci_n = value("c2_n_ci"),
+            profile_ci_success = if (method_code == "umx") {
+                value("profile_ci_rate")
+            } else {
+                NA_real_
+            },
+            se_success = if (method_code == "umx") {
+                value("se_rate")
+            } else {
+                NA_real_
+            },
+            median_seconds = value("time_median_sec"),
+            timed_n = value("n_timed")
         )
+    }))
+}))
+
+format_percent <- function(x) ifelse(is.na(x), "—", sprintf("%.1f", 100 * x))
+format_number <- function(x, digits = 3) {
+    ifelse(is.na(x), "—", sprintf(paste0("%.", digits, "f"), x))
+}
+summary_value <- function(n, metric, method) {
+    sim_summary[[metric]][
+        sim_summary$n_pairs == n & sim_summary$method_code == method
+    ]
+}
+summary_percent <- function(n, metric, method, digits = 1) {
+    sprintf(paste0("%.", digits, "f"), 100 * summary_value(n, metric, method))
+}
+sim_ns <- sort(unique(sim_summary$n_pairs))
+format_list <- function(x) {
+    if (length(x) < 2) {
+        return(paste(x, collapse = ""))
+    }
+    paste0(paste(x[-length(x)], collapse = ", "), ", and ", x[length(x)])
+}
+summary_percent_list <- function(metric, method) {
+    values <- vapply(
+        sim_ns,
+        summary_percent,
+        character(1),
+        metric = metric,
+        method = method
+    )
+    format_list(paste0(values, "%"))
+}
+
+sample_groups <- setNames(
+    as.list(match(unique(sim_summary$n_pairs), sim_summary$n_pairs)),
+    paste(unique(sim_summary$n_pairs), "pairs/group")
+)
+
+make_estimation_table <- function(parameter) {
+    sim_summary |>
+        transmute(
+            Method = method,
+            Bias = format_number(.data[[paste0(parameter, "_bias")]]),
+            RMSE = format_number(.data[[paste0(parameter, "_rmse")]]),
+            `Mean CI width` = format_number(.data[[paste0(
+                parameter,
+                "_ci_width"
+            )]]),
+            `Coverage (%)` = format_percent(.data[[paste0(
+                parameter,
+                "_coverage"
+            )]]),
+            `CI count` = .data[[paste0(parameter, "_ci_n")]]
+        ) |>
+        tt(width = c(0.30, 0.12, 0.12, 0.16, 0.17, 0.13)) |>
+        group_tt(i = sample_groups) |>
+        style_tt(align = "l", j = 1) |>
+        style_tt(align = "c", j = 2:6)
+}
+```
+
+## Results overview
+
+Convergence was high across the evaluated conditions, ranging from `r sprintf("%.1f", 100 * min(sim_summary$convergence))`% to `r sprintf("%.1f", 100 * max(sim_summary$convergence))`% (@tbl-sim-diagnostics). Both simplex Stan methods and UMX produced admissible estimates in all accepted fits. The unrestricted-correlation model produced admissible posterior-mean estimates in `r summary_percent_list("admissible", "stan_nc")` of accepted fits at `r paste(sim_ns, collapse = ", ")` pairs per group, respectively. UMX estimates remained admissible when a variance component reached zero: the c² boundary occurred in `r summary_percent_list("c2_boundary", "umx")` of accepted UMX fits. These boundary estimates should be distinguished from optimizer failure and inadmissibility.
+
+UMX standard errors for both components were available in at least `r sprintf("%.1f", 100 * min(sim_summary$se_success, na.rm = TRUE))`% of attempts, but successful profile-interval computation was much less frequent (@tbl-sim-umx-diagnostics). Both component intervals succeeded in `r summary_percent_list("profile_ci_success", "umx")` of attempts as sample size increased. At `r sim_ns[1]` pairs per group, h² and c² profile intervals were available in `r summary_value(sim_ns[1], "h2_ci_n", "umx")` and `r summary_value(sim_ns[1], "c2_ci_n", "umx")` of the 2,400 attempts, respectively. Consequently, UMX coverage and mean-width results describe the subset with successful interval computation, rather than all accepted fits.
+
+The estimation results illustrate tradeoffs between bias, variability, and admissibility (@tbl-h2-sim; @tbl-c2-sim). At `r sim_ns[1]` pairs per group, the unrestricted model had smaller absolute biases for both components than the simplex methods, but larger RMSEs and frequent inadmissible estimates. The regularized simplex method had more negative h² bias and greater h² RMSE than the basic simplex method across the evaluated sample sizes; its h² interval coverage was also lower. Bias magnitudes and RMSEs generally decreased with sample size. These findings characterize this empirical-resampling evaluation: the reference components are descriptive targets, and the results do not establish a general ranking under a correctly specified ACE model.
+
+```{r}
+#| label: tbl-sim-diagnostics
+#| tbl-cap: "Convergence, admissibility, and median analysis time. Each method has 2,400 attempted replications per condition. Convergence uses all attempts; admissibility uses accepted fits."
+sim_summary |>
+    transmute(
+        Method = method,
+        Accepted = accepted,
+        `Convergence (%)` = format_percent(convergence),
+        `Admissible (%)` = format_percent(admissible),
+        `Median time (s)` = format_number(median_seconds, 2)
     ) |>
-    format_tt(j = 2:7, digits = 1, num_fmt = "decimal") |>
-    style_tt(align = "c", j = 2:7)
+    tt(width = c(0.30, 0.13, 0.20, 0.19, 0.18)) |>
+    group_tt(i = sample_groups) |>
+    style_tt(align = "l", j = 1) |>
+    style_tt(align = "c", j = 2:5)
+```
+
+Median time is per attempted analysis, including retries and interval computations when requested, and excludes compilation and data generation.
+
+```{r}
+#| label: tbl-sim-umx-diagnostics
+#| tbl-cap: "UMX boundary and interval outcomes. The c² boundary rate uses accepted fits; SE and joint profile-CI success rates use all 2,400 attempts per condition."
+sim_summary |>
+    filter(method_code == "umx") |>
+    transmute(
+        `Pairs/group` = n_pairs,
+        `c² boundary (%)` = format_percent(c2_boundary),
+        `SE success (%)` = format_percent(se_success),
+        `Both profile CIs succeed (%)` = format_percent(profile_ci_success)
+    ) |>
+    tt(width = c(0.18, 0.25, 0.25, 0.32)) |>
+    style_tt(align = "c")
+```
+
+UMX SE success requires standard errors for both components, and joint profile-CI success requires both component profile intervals to succeed. The component-specific interval counts are shown in @tbl-h2-sim and @tbl-c2-sim. Bias and RMSE use accepted fits, including inadmissible estimates from the unrestricted model. Coverage and mean interval width are conditional on successful interval computation, so UMX coverage should be interpreted alongside its interval counts. Each CI count is out of 2,400 attempted replications.
+
+```{r}
+#| label: tbl-h2-sim
+#| tbl-cap: "Estimation performance for h². Coverage and mean width use available 90% equal-tailed posterior intervals (Stan) or profile-likelihood intervals (UMX). CI count is the number of available intervals out of 2,400 attempts."
+make_estimation_table("h2")
 ```
 
 ```{r}
-res_long2 |>
-    tidyr::separate(
-        metric,
-        into = c("param", "stat"),
-        sep = "\\.|_",
-        extra = "merge"
-    ) -> res_stats
+#| label: tbl-c2-sim
+#| tbl-cap: "Estimation performance for c². Coverage and mean width use available 90% equal-tailed posterior intervals (Stan) or profile-likelihood intervals (UMX). CI count is the number of available intervals out of 2,400 attempts."
+make_estimation_table("c2")
+```
 
-make_table <- function(param_str) {
-    res_stats |>
-        filter(
-            param == param_str,
-            grepl("bias|rmse|coverage|ciwidth", stat)
-        ) |>
-        select(
-            stat,
-            stan_50,
-            stan_nc_50,
-            umx_50,
-            stan_100,
-            stan_nc_100,
-            umx_100
-        ) |>
-        # convert coverage to percent
-        mutate(across(
-            -stat,
-            ~ case_when(
-                is.nan(.x) ~ "inadmissible",
-                is.na(.x) ~ "---",
-                grepl("coverage", stat) ~ formatC(
-                    .x * 100,
-                    digits = 1,
-                    format = "f"
-                ),
-                TRUE ~ formatC(.x, digits = 2, format = "f")
-            )
-        )) |>
-        arrange(stat) |>
-        mutate(
-            stat = case_when(
-                stat == "bias" ~ "post mean",
-                stat == "bias_med" ~ "post median",
-                stat == "bias_mode" ~ "post mode",
-                stat == "rmse" ~ "post mean",
-                stat == "rmse_med" ~ "post median",
-                stat == "rmse_mode" ~ "post mode",
-                stat == "coverage" ~ "Equal-tailed/Wald",
-                stat == "coverage_hdi" ~ "HDI/Profile",
-                stat == "ciwidth" ~ "Equal-tailed/Wald",
-                stat == "ciwidth_hdi" ~ "HDI/Profile",
-                TRUE ~ stat
-            )
-        ) |>
-        `colnames<-`(c(
-            "metric",
-            "Stan (simplex)",
-            "Stan (unbounded)",
-            "umx",
-            "Stan (simplex)",
-            "Stan (unbounded)",
-            "umx"
-        )) |>
-        tt() |>
-        group_tt(
-            i = list(
-                "Bias" = 1,
-                "CI Width" = 4,
-                "CI Coverage (%)" = 6,
-                "RMSE" = 8
+## Joint estimates and admissibility
+
+@fig-sim-admissibility-50, @fig-sim-admissibility-100, and @fig-sim-admissibility-500 show the joint distributions of the component estimates among accepted fits. The axes are shared across methods and sample sizes and include all plotted estimates. The shaded triangle marks the admissible region: $h^2 \geq 0$, $c^2 \geq 0$, and $h^2 + c^2 \leq 1$. Dashed lines mark the empirical-reference values, rather than known generating ACE parameters. UMX zero-boundary estimates are admissible; red triangles identify inadmissible estimates from the unrestricted-correlation model.
+
+```{r}
+#| include: false
+sim_info <- attr(res, "extra_info")
+replications <- sim_info$stored_results
+reference <- sim_info$fixed_objects
+
+plot_estimates <- bind_rows(lapply(methods, function(method_code) {
+    replications |>
+        transmute(
+            n_pairs,
+            method_code = method_code,
+            method = factor(
+                unname(method_labels[method_code]),
+                levels = method_labels
             ),
-            j = list("n = 50" = 2:4, "n = 100" = 5:7)
+            converged = .data[[paste0(method_code, ".converged")]],
+            admissible = .data[[paste0(method_code, ".admissible")]],
+            h2 = .data[[paste0(method_code, ".h2_est")]],
+            c2 = .data[[paste0(method_code, ".c2_est")]]
         ) |>
-        style_tt(align = "c", j = 2:7) |>
-        style_tt(align = "l", i = c(1, 5, 8, 11)) |>
-        style_tt(
-            i = c(2:4, 6:7, 9:10, 12:14),
-            indent = 2
+        filter(converged == 1, is.finite(h2), is.finite(c2)) |>
+        mutate(
+            status = factor(
+                ifelse(admissible == 1, "Admissible", "Inadmissible"),
+                levels = c("Admissible", "Inadmissible")
+            )
+        )
+}))
+
+panel_counts <- plot_estimates |>
+    group_by(n_pairs, method) |>
+    summarise(
+        accepted = n(),
+        inadmissible = sum(admissible == 0),
+        .groups = "drop"
+    ) |>
+    mutate(
+        label = sprintf(
+            "Accepted: %s\nInadmissible: %s (%.1f%%)",
+            format(accepted, big.mark = ",", trim = TRUE),
+            format(inadmissible, big.mark = ",", trim = TRUE),
+            100 * inadmissible / accepted
+        )
+    )
+
+admissible_region <- tibble(h2 = c(0, 1, 0, 0), c2 = c(0, 0, 1, 0))
+x_limits <- range(c(0, 1, plot_estimates$h2))
+y_limits <- range(c(0, 1, plot_estimates$c2))
+
+make_admissibility_plot <- function(n_pairs_value) {
+    estimates <- filter(plot_estimates, n_pairs == n_pairs_value)
+    ggplot(estimates, aes(h2, c2, color = status, shape = status)) +
+        geom_polygon(
+            data = admissible_region,
+            aes(h2, c2),
+            inherit.aes = FALSE,
+            fill = "grey95"
+        ) +
+        geom_path(
+            data = admissible_region,
+            aes(h2, c2),
+            inherit.aes = FALSE,
+            linetype = "dotted",
+            color = "grey40"
+        ) +
+        geom_vline(
+            xintercept = reference$h2_true,
+            linetype = "dashed",
+            color = "grey50"
+        ) +
+        geom_hline(
+            yintercept = reference$c2_true,
+            linetype = "dashed",
+            color = "grey50"
+        ) +
+        geom_point(
+            data = filter(estimates, admissible == 1),
+            alpha = 0.35,
+            size = 0.6
+        ) +
+        geom_point(
+            data = filter(estimates, admissible == 0),
+            alpha = 0.6,
+            size = 0.8
+        ) +
+        geom_text(
+            data = filter(panel_counts, n_pairs == n_pairs_value),
+            aes(x = Inf, y = Inf, label = label),
+            inherit.aes = FALSE,
+            hjust = 1.05,
+            vjust = 1.2,
+            size = 3,
+            lineheight = 1.1
+        ) +
+        facet_wrap(vars(method), ncol = 2) +
+        scale_color_manual(
+            values = c(Admissible = "grey25", Inadmissible = "#C43C39"),
+            drop = FALSE
+        ) +
+        scale_shape_manual(
+            values = c(Admissible = 16, Inadmissible = 17),
+            drop = FALSE
+        ) +
+        coord_fixed(xlim = x_limits, ylim = y_limits) +
+        labs(
+            x = expression(h^2 ~ estimate),
+            y = expression(c^2 ~ estimate),
+            color = NULL,
+            shape = NULL
+        ) +
+        theme_bw(base_size = 11) +
+        theme(
+            legend.position = "bottom",
+            panel.grid.minor = element_blank(),
+            strip.background = element_rect(fill = "grey95")
+        ) +
+        guides(
+            color = guide_legend(override.aes = list(alpha = 1, size = 2))
         )
 }
 ```
 
 ```{r}
-#| label: tbl-h2-sim
-#| tbl-cap: "Bias, RMSE, CI width, and CI coverage for $h^2$"
-# h^2 table
-make_table("h2")
+#| label: fig-sim-admissibility-50
+#| fig-width: 6.5
+#| fig-height: 6
+#| fig-cap: "Joint h² and c² estimates with 50 pairs per zygosity group, among accepted fits. Stan estimates are posterior means; UMX estimates are standardized variance proportions. The dotted triangle bounds the admissible region, red triangles mark inadmissible estimates, and dashed lines mark the empirical-reference values. Percentages in each panel use accepted fits."
+make_admissibility_plot(50)
 ```
 
 ```{r}
-#| label: tbl-c2-sim
-#| tbl-cap: "Bias, RMSE, CI width, and CI coverage for $c^2$"
-# c^2 table
-make_table("c2")
+#| label: fig-sim-admissibility-100
+#| fig-width: 6.5
+#| fig-height: 6
+#| fig-cap: "Joint h² and c² estimates with 100 pairs per zygosity group, among accepted fits. Point summaries, boundaries, reference lines, and percentage denominators are as in @fig-sim-admissibility-50."
+make_admissibility_plot(100)
 ```
 
-
 ```{r}
-#| include: false
-source(here::here("simulation", "sim_ace_joreskog_cond.R"))
-res1 <- readRDS(here::here(
-    "simulation",
-    "sim_ace_joreskog_results__1",
-    "results-row-1.rds"
-))
-res2 <- readRDS(here::here(
-    "simulation",
-    "sim_ace_joreskog_results__1",
-    "results-row-2.rds"
-))
-# Filter by inadmissible Stan_nc or umx
-# stan_nc
-res1_ia_stan_nc <- res1$results[which(res1$results$stan_nc.admissible == 0), ]
-res2_ia_stan_nc <- res2$results[which(res2$results$stan_nc.admissible == 0), ]
-# umx
-res1_ia_umx <- res1$results[which(res1$results$umx.admissible == 0), ]
-res2_ia_umx <- res2$results[which(res2$results$umx.admissible == 0), ]
-```
-
-
-```{r}
-#| label: fig-combo-c2-h2
-#| fig-cap: "Estimates of $h^2$ and $c^2$. The dashed lines indicate the true values, and the dotted line indicates the boundary where $h^2 + c^2 = 1$. The red points indicate estimates from replications where the Stan (unbounded) or umx estimates were inadmissible."
-#| layout-ncol: 2
-#| fig-width: 3.5
-#| fig-subcap:
-#|   - "Stan (simplex) posterior median"
-#|   - "Stan (unbounded) posterior mean"
-#|   - "umx"
-ggplot(res1$results, aes(x = stan.h2_est_med, y = stan.c2_est_med)) +
-    geom_point(alpha = 0.5, size = 0.5) +
-    geom_vline(xintercept = FIXED$h2_true, linetype = "dashed") +
-    geom_hline(yintercept = FIXED$c2_true, linetype = "dashed") +
-    geom_abline(slope = -1, intercept = 1, linetype = "dotted") +
-    labs(x = "h2 estimate", y = "c2 estimate") +
-    ggtitle("Stan (simplex) posterior median")
-ggplot(res1$results, aes(x = stan_nc.h2_est, y = stan_nc.c2_est)) +
-    geom_point(alpha = 0.5, size = 0.5) +
-    geom_point(
-        data = res1_ia_stan_nc,
-        aes(x = stan_nc.h2_est, y = stan_nc.c2_est),
-        color = "red",
-        alpha = 0.5,
-        size = 0.5
-    ) +
-    geom_vline(xintercept = FIXED$h2_true, linetype = "dashed") +
-    geom_hline(yintercept = FIXED$c2_true, linetype = "dashed") +
-    geom_abline(slope = -1, intercept = 1, linetype = "dotted") +
-    labs(x = "h2 estimate", y = "c2 estimate") +
-    ggtitle("Stan (unbounded) posterior mean")
-ggplot(res1$results, aes(x = umx.h2_est, y = umx.c2_est)) +
-    geom_point(alpha = 0.5, size = 0.5) +
-    geom_point(
-        data = res1_ia_umx,
-        aes(x = umx.h2_est, y = umx.c2_est),
-        color = "red",
-        alpha = 0.5,
-        size = 0.5
-    ) +
-    geom_vline(xintercept = FIXED$h2_true, linetype = "dashed") +
-    geom_hline(yintercept = FIXED$c2_true, linetype = "dashed") +
-    geom_abline(slope = -1, intercept = 1, linetype = "dotted") +
-    labs(x = "h2 estimate", y = "c2 estimate") +
-    ggtitle("umx")
+#| label: fig-sim-admissibility-500
+#| fig-width: 6.5
+#| fig-height: 6
+#| fig-cap: "Joint h² and c² estimates with 500 pairs per zygosity group, among accepted fits. Point summaries, boundaries, reference lines, and percentage denominators are as in @fig-sim-admissibility-50."
+make_admissibility_plot(500)
 ```
