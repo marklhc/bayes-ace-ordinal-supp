@@ -3,370 +3,379 @@
 
 ## Overview
 
-Two Bayesian approaches for estimating polychoric correlations in the
-ACE twin model are compared:
+This illustration compares marginal likelihood estimation in Stan with
+data augmentation in *blavaan*, with **one run per method at each sample
+size**. Both fit unrestricted MZ and DZ correlations, with liability
+means fixed to zero, variances fixed to one, and thresholds shared
+between twins and groups. This is not the constrained simplex ACE model
+used in the tutorial.
 
 | Feature | Stan (marginal likelihood) | blavaan (data augmentation) |
 |----|----|----|
-| **Likelihood** | Multinomial on $K(K+1)/2$ reduced cell counts | Multivariate normal on $N$ augmented latent variables |
-| **Computational scaling** | $O(K^2)$ — independent of $N$ | $O(N)$ — linear in sample size |
-| **Implementation** | `ace_ordinal_symmetry_for_compare.stan` | `bcfa()` from the *blavaan* package |
+| Likelihood | Multinomial on $K(K+1)/2$ reduced cell counts | Gaussian density on augmented liabilities |
+| Likelihood evaluation at fixed $K$ | Fixed-size cell probability calculation | Observation-specific work grows with $N$ |
+| Backend | CmdStanR / CmdStan | blavaan / rstan, precompiled model |
 
-Both methods use identical MCMC settings (3 chains, 500 warmup + 1000
-post-warmup iterations) and equivalent priors:
+Both methods use independent Uniform$(-1,1)$ correlation priors (LKJ(1)
+for blavaan’s bivariate correlation matrices). The matched threshold
+prior is $u_1,u_2\overset{\mathrm{iid}}\sim N(0,1.5^2)$, with
+$\tau_1=u_1$ and $\tau_2=\tau_1+\exp(u_2)$: the normal prior applies to
+the first threshold and the log spacing, rather than independently to
+the ordered thresholds. Blavaan uses finite outer endpoints $\pm30$,
+whereas Stan uses infinite endpoints.
 
-- Polychoric correlations: Uniform$(-1, 1)$ — Stan uses
-  `scaled_rho ~ beta(1, 1)` with a linear rescaling; blavaan uses
-  `lkj_corr(1)`, which is also uniform for a bivariate case.
-- Thresholds: `normal(0, 1.5)` in both.
+Each fit uses three parallel chains, 500 warmup and 1,000 post-warmup
+iterations per chain, seed 42, `adapt_delta = 0.95`, and
+`max_treedepth = 12`. These single-run timings are illustrative; total
+runtime also depends on adaptation, posterior geometry, and
+implementation overhead.
 
 ## Setup
 
+Run through the project R environment (`renv` is activated by
+`.Rprofile`).
+
 ``` r
 library(cmdstanr)
-library(lavaan)
-library(blavaan)
-library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(here)
-# Run 3 chains in parallel
-options(mc.cores = 3)
-options(future.globals.maxSize = 2 * 1024^3) # 2 GB
 ```
 
-## Compile Stan Model
+    This is cmdstanr version 0.9.0
+
+    - CmdStanR documentation and vignettes: mc-stan.org/cmdstanr
+
+    - CmdStan path: /home/marklai/.cmdstan/cmdstan-2.40.0
+
+    - CmdStan version: 2.40.0
+
+``` r
+library(blavaan)
+```
+
+    Loading required package: Rcpp
+
+    This is blavaan 0.6-1
+
+    On multicore systems, we suggest use of future::plan("multicore") or
+      future::plan("multisession") for faster post-MCMC computations.
+
+``` r
+library(posterior)
+```
+
+    This is posterior version 1.7.0
+
+    Attaching package: 'posterior'
+
+    The following objects are masked from 'package:stats':
+
+        mad, sd, var
+
+    The following objects are masked from 'package:base':
+
+        %in%, match
+
+``` r
+library(here)
+```
+
+    here() starts at /home/marklai/Research/supp-in-articles/bayes-ace-ordinal-supp
+
+``` r
+library(dplyr)
+```
+
+    Attaching package: 'dplyr'
+
+    The following objects are masked from 'package:stats':
+
+        filter, lag
+
+    The following objects are masked from 'package:base':
+
+        intersect, setdiff, setequal, union
+
+``` r
+library(tidyr)
+library(ggplot2)
+options(mc.cores = 3)
+future::plan(future::sequential)
+```
 
 ``` r
 ace_cmp <- cmdstan_model(here("stan", "ace_ordinal_symmetry_for_compare.stan"))
 ```
 
-## Data
+## Data and Model
 
-BMI category data (normal / overweight / obese) for MZ and DZ twin
-pairs, based on the summary frequencies from Jøreskog (2021).
+The BMI category frequencies from Jöreskog (2021) contain 794 MZ and 758
+DZ twin pairs. The fixed-seed subsampling sequence is the same as in the
+original notebook.
 
 ``` r
-n_mz <- c(325, 60, 7, 78, 150, 40, 8, 38, 88)
-n_dz <- c(202, 97, 19, 96, 112, 64, 46, 56, 66)
-dat_mz <- data.frame(
-    twin1 = rep(rep(1:3, 3), n_mz),
-    twin2 = rep(rep(1:3, each = 3), n_mz)
-)
-dat_dz <- data.frame(
-    twin1 = rep(rep(1:3, 3), n_dz),
-    twin2 = rep(rep(1:3, each = 3), n_dz)
-)
-dat_mz[] <- lapply(dat_mz, ordered, labels = c("normal", "overweight", "obese"))
-dat_dz[] <- lapply(dat_dz, ordered, labels = c("normal", "overweight", "obese"))
+make_group <- function(counts, group) {
+    data.frame(
+        zygosity = group,
+        twin1 = ordered(rep(rep(1:3, 3), counts), levels = 1:3),
+        twin2 = ordered(rep(rep(1:3, each = 3), counts), levels = 1:3)
+    )
+}
 dat_full <- rbind(
-    data.frame(zygosity = "MZ", dat_mz),
-    data.frame(zygosity = "DZ", dat_dz)
+    make_group(c(325, 60, 7, 78, 150, 40, 8, 38, 88), "MZ"),
+    make_group(c(202, 97, 19, 96, 112, 64, 46, 56, 66), "DZ")
 )
-
-# Fixed-seed subsamples
 set.seed(1234)
 dat_100 <- dat_full[sample.int(nrow(dat_full), 100), ]
 dat_500 <- dat_full[sample.int(nrow(dat_full), 500), ]
+datasets <- list(`100` = dat_100, `500` = dat_500, full = dat_full)
 
-cat(
-    "N full =",
-    nrow(dat_full),
-    "  (MZ:",
-    sum(dat_full$zygosity == "MZ"),
-    "| DZ:",
-    sum(dat_full$zygosity == "DZ"),
-    ")\n"
-)
+data.frame(
+    N = vapply(datasets, nrow, integer(1)),
+    MZ = vapply(datasets, function(x) sum(x$zygosity == "MZ"), integer(1)),
+    DZ = vapply(datasets, function(x) sum(x$zygosity == "DZ"), integer(1))
+) |>
+    knitr::kable(caption = "Twin-pair counts in each benchmark data set")
 ```
 
-    N full = 1552   (MZ: 794 | DZ: 758 )
+|      |    N |  MZ |  DZ |
+|:-----|-----:|----:|----:|
+| 100  |  100 |  55 |  45 |
+| 500  |  500 | 262 | 238 |
+| full | 1552 | 794 | 758 |
 
-## blavaan Model Syntax
+Twin-pair counts in each benchmark data set
 
 ``` r
-# Equal thresholds for both twins and across zygosity groups (same labels)
 ace_blavaan_mod <- "
     twin1 ~~ twin2
-    twin1 | th1 * t1 + th2 * t2
-    twin2 | th1 * t1 + th2 * t2
+    twin1 ~~ 1*twin1
+    twin2 ~~ 1*twin2
+    twin1 ~ 0*1
+    twin2 ~ 0*1
+    twin1 | th1*t1 + th2*t2
+    twin2 | th1*t1 + th2*t2
 "
 ```
 
-## Helper Functions
+## Fitting and Saving Results
+
+Both timers start before method-specific input preparation and stop when
+the fitting call returns. They include initialization, warmup, sampling,
+and internal package post-processing. Compilation, explicit draw
+extraction, summaries, and cache I/O are outside the timer. The backends
+perform different internal tasks, so these are practical whole-fit
+costs, rather than a timing of marginalization alone.
 
 ``` r
-# Reduce a contingency table to lower-triangular vector (exploiting symmetry)
-to_ltri <- function(tab_x) {
-    symm_x <- tab_x + t(tab_x) - diag(diag(tab_x))
-    symm_x[lower.tri(symm_x, diag = TRUE)]
+to_ltri <- function(tab) {
+    symm <- tab + t(tab) - diag(diag(tab))
+    as.integer(symm[lower.tri(symm, diag = TRUE)])
 }
 
-# Run Stan marginal likelihood approach; return timing + estimates
+# Common summaries of the two correlations and two actual thresholds.
+summarise_fit <- function(draws, sampler, elapsed) {
+    summ <- as.data.frame(summarise_draws(
+        draws, mean = mean, sd = sd,
+        q05 = function(x) unname(quantile(x, 0.05)),
+        q95 = function(x) unname(quantile(x, 0.95)),
+        rhat = posterior::rhat, ess_bulk = posterior::ess_bulk,
+        ess_tail = posterior::ess_tail
+    ))
+    list(
+        elapsed = unname(elapsed),
+        summary = summ,
+        diagnostics = data.frame(
+            rhat_max = max(summ$rhat),
+            ess_bulk_min = min(summ$ess_bulk),
+            ess_tail_min = min(summ$ess_tail),
+            divergences = sum(sampler[, , "divergent__"]),
+            treedepth_hits = sum(sampler[, , "treedepth__"] >= 12)
+        )
+    )
+}
+
 run_stan <- function(dat, seed = 42) {
+    start <- proc.time()[[3]]
     tab_mz <- with(dat[dat$zygosity == "MZ", ], table(twin1, twin2))
     tab_dz <- with(dat[dat$zygosity == "DZ", ], table(twin1, twin2))
     fit <- ace_cmp$sample(
-        list(
-            k = 3L,
-            ltri_ns1 = to_ltri(tab_mz), # MZ → rho1
-            ltri_ns2 = to_ltri(tab_dz) # DZ → rho2
-        ),
-        chains = 3,
-        iter_warmup = 500,
-        iter_sampling = 1000,
-        seed = seed,
-        refresh = 0
+        data = list(k = 3L, ltri_ns1 = to_ltri(tab_mz), ltri_ns2 = to_ltri(tab_dz)),
+        chains = 3, parallel_chains = 3,
+        iter_warmup = 500, iter_sampling = 1000,
+        seed = seed, refresh = 0, sig_figs = 18,
+        adapt_delta = 0.95, max_treedepth = 12
     )
-    summ <- fit$summary(c("rho1", "rho2"))
-    list(
-        elapsed = fit$time()$total,
-        rhat_max = max(summ$rhat, na.rm = TRUE),
-        rho = tibble(
-            group = c("MZ", "DZ"),
-            mean = summ$mean,
-            sd = summ$sd,
-            ci_lower = summ$q5,
-            ci_upper = summ$q95
-        )
-    )
+    elapsed <- proc.time()[[3]] - start
+    draws <- fit$draws(c("rho1", "rho2", "thres"), format = "draws_array")
+    draws <- draws[, , c("rho1", "rho2", "thres[1]", "thres[2]"), drop = FALSE]
+    dimnames(draws)[[3]] <- c("rho_MZ", "rho_DZ", "tau1", "tau2")
+    summarise_fit(draws, fit$sampler_diagnostics(format = "draws_array"), elapsed)
 }
 
-# Run blavaan data augmentation approach; return timing + estimates
 run_blavaan <- function(dat, seed = 42) {
+    start <- proc.time()[[3]]
     fit <- bcfa(
-        ace_blavaan_mod,
-        data = dat,
-        ordered = c("twin1", "twin2"),
-        group = "zygosity",
-        n.chains = 3,
-        burnin = 500,
-        sample = 1000,
-        seed = seed
-    )
-    pe <- parameterEstimates(fit)
-    summ <- summary(fit)
-    cor_rows <- subset(pe, op == "~~" & lhs == "twin1" & rhs == "twin2")
-    rows_id <- as.integer(rownames(cor_rows))
-    # Groups are ordered alphabetically by blavaan/lavaan: DZ = 1, MZ = 2
-    group_labs <- fit@Data@group.label
-    cor_rows$group_label <- group_labs[cor_rows$group]
-    # Max Rhat across correlation parameters (from blavaan's psrf diagnostic)
-    psrf <- blavaan::blavInspect(fit, "psrf")
-    list(
-        elapsed = fit@timing$Estimate,
-        rhat_max = max(psrf, na.rm = TRUE),
-        rho = tibble(
-            group = cor_rows$group_label,
-            mean = cor_rows$est,
-            sd = as.numeric(summ[rows_id, " Post.SD"]),
-            ci_lower = as.numeric(summ[rows_id, "pi.lower"]),
-            ci_upper = as.numeric(summ[rows_id, "pi.upper"])
+        ace_blavaan_mod, data = dat, ordered = c("twin1", "twin2"),
+        group = "zygosity", group.label = c("MZ", "DZ"), target = "stan",
+        dp = dpriors(tau = "normal(0,1.5)", rho = "beta(1,1)"),
+        n.chains = 3, burnin = 500, sample = 1000, seed = seed, test = "none",
+        bcontrol = list(
+            cores = 3, refresh = 0,
+            control = list(adapt_delta = 0.95, max_treedepth = 12)
         )
     )
+    elapsed <- proc.time()[[3]] - start
+    # Map parameters by fitted group/threshold identifiers, not printed row positions.
+    pt <- as.data.frame(fit@ParTable)
+    cor_rows <- subset(pt, op == "~~" & lhs != rhs)
+    cor_names <- cor_rows$pxnames[match(c("MZ", "DZ"), fit@Data@group.label[cor_rows$group])]
+    tau_names <- vapply(c("t1", "t2"), function(threshold) {
+        unique(pt$pxnames[pt$op == "|" & pt$rhs == threshold])
+    }, character(1))
+    draws <- as.array(fit@external$mcmcout)[, , c(cor_names, tau_names), drop = FALSE]
+    dimnames(draws)[[3]] <- c("rho_MZ", "rho_DZ", "tau1", "tau2")
+    sampler <- rstan::get_sampler_params(fit@external$mcmcout, inc_warmup = FALSE)
+    sampler <- aperm(simplify2array(sampler), c(1, 3, 2))
+    summarise_fit(as_draws_array(draws), sampler, elapsed)
 }
 ```
 
-## Benchmarks
-
-Results are cached to RDS files to avoid re-running.
-
-### N = 100
+Each method’s result is saved immediately to
+`notebooks/bench_stan_blavaan_<100|500|full>_<stan|blavaan>.rds`.
+Subsequent renders read these files without refitting. To rerun a fit,
+delete its cache file first. These files are separate from the older
+benchmark caches.
 
 ``` r
-cache_100 <- here("notebooks", "bench_blavaan_100.rds")
-if (!file.exists(cache_100)) {
-    res_100 <- list(
-        stan = run_stan(dat_100, seed = 42),
-        blavaan = run_blavaan(dat_100, seed = 42)
-    )
-    saveRDS(res_100, cache_100)
-} else {
-    res_100 <- readRDS(cache_100)
+results <- list()
+for (name in names(datasets)) {
+    results[[name]] <- list()
+    for (method in c("stan", "blavaan")) {
+        cache <- here("notebooks", paste0("bench_stan_blavaan_", name, "_", method, ".rds"))
+        if (file.exists(cache)) {
+            result <- readRDS(cache)
+        } else {
+            result <- if (method == "stan") run_stan(datasets[[name]]) else run_blavaan(datasets[[name]])
+            saveRDS(result, cache)
+        }
+        results[[name]][[method]] <- result
+    }
 }
-cat(sprintf(
-    "Stan: %.1f s  (max Rhat = %.3f)\nblavaan: %.1f s  (max Rhat = %.3f)\n",
-    res_100$stan$elapsed,
-    res_100$stan$rhat_max,
-    res_100$blavaan$elapsed,
-    res_100$blavaan$rhat_max
-))
+
+# Unrounded timings for inline extraction in paper2.qmd.
+timing <- tibble(
+    N = vapply(datasets, nrow, integer(1)),
+    stan_seconds = vapply(results, function(x) x$stan$elapsed, numeric(1)),
+    blavaan_seconds = vapply(results, function(x) x$blavaan$elapsed, numeric(1))
+)
+saveRDS(timing, here("notebooks", "benchmark-stan-blavaan-timing.rds"))
 ```
-
-    Stan: 0.5 s  (max Rhat = 1.001)
-    blavaan: 15.5 s  (max Rhat = 1.001)
-
-### N = 500
-
-``` r
-cache_500 <- here("notebooks", "bench_blavaan_500.rds")
-if (!file.exists(cache_500)) {
-    res_500 <- list(
-        stan = run_stan(dat_500, seed = 42),
-        blavaan = run_blavaan(dat_500, seed = 42)
-    )
-    saveRDS(res_500, cache_500)
-} else {
-    res_500 <- readRDS(cache_500)
-}
-cat(sprintf(
-    "Stan: %.1f s  (max Rhat = %.3f)\nblavaan: %.1f s  (max Rhat = %.3f)\n",
-    res_500$stan$elapsed,
-    res_500$stan$rhat_max,
-    res_500$blavaan$elapsed,
-    res_500$blavaan$rhat_max
-))
-```
-
-    Stan: 0.7 s  (max Rhat = 1.002)
-    blavaan: 86.8 s  (max Rhat = 1.005)
-
-### Full Data (N = 1552)
-
-``` r
-cache_full <- here("notebooks", "bench_blavaan_full.rds")
-if (!file.exists(cache_full)) {
-    res_full <- list(
-        stan = run_stan(dat_full, seed = 42),
-        blavaan = run_blavaan(dat_full, seed = 42)
-    )
-    saveRDS(res_full, cache_full)
-} else {
-    res_full <- readRDS(cache_full)
-}
-cat(sprintf(
-    "Stan: %.1f s  (max Rhat = %.3f)\nblavaan: %.1f s  (max Rhat = %.3f)\n",
-    res_full$stan$elapsed,
-    res_full$stan$rhat_max,
-    res_full$blavaan$elapsed,
-    res_full$blavaan$rhat_max
-))
-```
-
-    Stan: 1.0 s  (max Rhat = 1.002)
-    blavaan: 568.6 s  (max Rhat = 1.000)
 
 ## Results
 
 ### Timing
 
 ``` r
-timing_df <- tibble(
-    N = rep(c(100, 500, nrow(dat_full)), each = 2),
-    Method = rep(c("Stan (marginal)", "blavaan"), 3),
-    Time_s = c(
-        res_100$stan$elapsed,
-        res_100$blavaan$elapsed,
-        res_500$stan$elapsed,
-        res_500$blavaan$elapsed,
-        res_full$stan$elapsed,
-        res_full$blavaan$elapsed
-    )
-)
-
-timing_df |>
-    pivot_wider(names_from = Method, values_from = Time_s) |>
+timing |>
     mutate(
-        `Speedup (×)` = round(`blavaan` / `Stan (marginal)`, 1),
-        across(where(is.double), \(x) round(x, 1))
+        speedup = blavaan_seconds / stan_seconds,
+        across(where(is.double), function(x) round(x, 2))
     ) |>
-    knitr::kable(caption = "Wall-clock sampling time (seconds) by sample size")
+    knitr::kable(
+        col.names = c("N", "Stan (s)", "blavaan (s)", "Speedup (×)"),
+        caption = "Whole-fit elapsed time including warmup: one run per method and sample size"
+    )
 ```
 
-|    N | Stan (marginal) | blavaan | Speedup (×) |
-|-----:|----------------:|--------:|------------:|
-|  100 |             0.5 |    15.5 |        32.5 |
-|  500 |             0.7 |    86.8 |       133.4 |
-| 1552 |             1.0 |   568.6 |       560.2 |
+|    N | Stan (s) | blavaan (s) | Speedup (×) |
+|-----:|---------:|------------:|------------:|
+|  100 |     0.76 |       14.44 |       19.10 |
+|  500 |     0.51 |       98.93 |      195.13 |
+| 1552 |     1.02 |      373.89 |      368.00 |
 
-Wall-clock sampling time (seconds) by sample size
+Whole-fit elapsed time including warmup: one run per method and sample
+size
 
 ``` r
-ggplot(timing_df, aes(x = N, y = Time_s, color = Method, shape = Method)) +
-    geom_line(linewidth = 0.8) +
+timing_long <- timing |>
+    pivot_longer(-N, names_to = "Method", values_to = "seconds") |>
+    mutate(Method = recode(Method, stan_seconds = "Stan (marginal)", blavaan_seconds = "blavaan"))
+ggplot(timing_long, aes(N, seconds, color = Method)) +
+    geom_line() +
     geom_point(size = 3) +
-    scale_x_log10(
-        breaks = c(100, 500, nrow(dat_full)),
-        labels = c("100", "500", as.character(nrow(dat_full)))
-    ) +
-    labs(
-        x = "Sample size N (log scale)",
-        y = "Sampling time (seconds)",
-        title = "MCMC Wall-Clock Time: Stan (marginal) vs blavaan",
-        color = NULL,
-        shape = NULL
-    ) +
-    theme_minimal(base_size = 13) +
+    scale_x_log10(breaks = c(100, 500, 1552)) +
+    labs(x = "Number of twin pairs", y = "Whole-fit seconds (including warmup)", color = NULL) +
+    theme_minimal() +
     theme(legend.position = "bottom")
 ```
 
 ![](benchmark-stan-blavaan_files/figure-commonmark/timing-plot-1.png)
 
-### Polychoric Correlation Estimates
+### Convergence and Correlation Estimates
 
-Posterior mean and 90% credible interval for the MZ and DZ polychoric
-correlations ($\rho_\text{MZ}$ and $\rho_\text{DZ}$) across the two
-methods and three sample sizes.
+Basic diagnostics summarize the same four structural parameters for both
+methods. The correlation intervals use the 5th and 95th percentiles of
+post-warmup draws (90% equal-tail credible intervals).
 
 ``` r
-ests_df <- bind_rows(
-    mutate(res_100$stan$rho, N = 100, Method = "Stan (marginal)"),
-    mutate(res_100$blavaan$rho, N = 100, Method = "blavaan"),
-    mutate(res_500$stan$rho, N = 500, Method = "Stan (marginal)"),
-    mutate(res_500$blavaan$rho, N = 500, Method = "blavaan"),
-    mutate(res_full$stan$rho, N = nrow(dat_full), Method = "Stan (marginal)"),
-    mutate(res_full$blavaan$rho, N = nrow(dat_full), Method = "blavaan")
-)
-
-ests_df |>
-    arrange(N, group, Method) |>
-    mutate(across(where(is.numeric), \(x) round(x, 3))) |>
-    knitr::kable(
-        col.names = c("Group", "Mean", "SD", "CI 5%", "CI 95%", "N", "Method"),
-        caption = "Posterior summaries of polychoric correlations (90% CI)"
-    )
+diagnostics <- estimates <- list()
+for (name in names(results)) {
+    for (method in c("stan", "blavaan")) {
+        result <- results[[name]][[method]]
+        label <- if (method == "stan") "Stan (marginal)" else "blavaan"
+        id <- paste(name, method, sep = "_")
+        diagnostics[[id]] <- mutate(result$diagnostics, N = nrow(datasets[[name]]), Method = label, .before = 1)
+        estimates[[id]] <- mutate(result$summary, N = nrow(datasets[[name]]), Method = label, .before = 1)
+    }
+}
+bind_rows(diagnostics) |>
+    mutate(across(where(is.double), function(x) round(x, 3))) |>
+    knitr::kable(caption = "Basic convergence diagnostics for each fit")
 ```
 
-| Group |  Mean |    SD |  CI 5% | CI 95% |    N | Method          |
-|:------|------:|------:|-------:|-------:|-----:|:----------------|
-| DZ    | 0.182 | 0.170 | -0.104 |  0.453 |  100 | Stan (marginal) |
-| DZ    | 0.176 | 0.179 | -0.187 |  0.506 |  100 | blavaan         |
-| MZ    | 0.776 | 0.080 |  0.627 |  0.883 |  100 | Stan (marginal) |
-| MZ    | 0.781 | 0.076 |  0.613 |  0.894 |  100 | blavaan         |
-| DZ    | 0.448 | 0.066 |  0.336 |  0.551 |  500 | Stan (marginal) |
-| DZ    | 0.449 | 0.068 |  0.311 |  0.574 |  500 | blavaan         |
-| MZ    | 0.839 | 0.029 |  0.787 |  0.881 |  500 | Stan (marginal) |
-| MZ    | 0.841 | 0.028 |  0.780 |  0.889 |  500 | blavaan         |
-| DZ    | 0.455 | 0.037 |  0.394 |  0.515 | 1552 | Stan (marginal) |
-| DZ    | 0.455 | 0.037 |  0.382 |  0.527 | 1552 | blavaan         |
-| MZ    | 0.810 | 0.019 |  0.777 |  0.838 | 1552 | Stan (marginal) |
-| MZ    | 0.809 | 0.019 |  0.768 |  0.843 | 1552 | blavaan         |
+| N | Method | rhat_max | ess_bulk_min | ess_tail_min | divergences | treedepth_hits |
+|---:|:---|---:|---:|---:|---:|---:|
+| 100 | Stan (marginal) | 1.001 | 2502.628 | 2021.696 | 0 | 0 |
+| 100 | blavaan | 1.003 | 1099.622 | 1769.393 | 0 | 0 |
+| 500 | Stan (marginal) | 1.001 | 2456.631 | 2176.795 | 0 | 0 |
+| 500 | blavaan | 1.002 | 1170.397 | 1683.690 | 0 | 0 |
+| 1552 | Stan (marginal) | 1.006 | 2482.876 | 1622.715 | 0 | 0 |
+| 1552 | blavaan | 1.003 | 1295.288 | 2080.127 | 0 | 0 |
 
-Posterior summaries of polychoric correlations (90% CI)
+Basic convergence diagnostics for each fit
 
 ``` r
-ggplot(
-    ests_df,
-    aes(
-        x = factor(N),
-        y = mean,
-        ymin = ci_lower,
-        ymax = ci_upper,
-        color = Method,
-        shape = Method
-    )
-) +
+correlations <- bind_rows(estimates) |>
+    filter(variable %in% c("rho_MZ", "rho_DZ"))
+correlations |>
+    select(N, Method, variable, mean, sd, q05, q95) |>
+    mutate(across(where(is.double), function(x) round(x, 4))) |>
+    knitr::kable(caption = "Correlation posterior mean, SD, and 90% credible interval")
+```
+
+|    N | Method          | variable |   mean |     sd |     q05 |    q95 |
+|-----:|:----------------|:---------|-------:|-------:|--------:|-------:|
+|  100 | Stan (marginal) | rho_MZ   | 0.7782 | 0.0769 |  0.6375 | 0.8835 |
+|  100 | Stan (marginal) | rho_DZ   | 0.1796 | 0.1736 | -0.1159 | 0.4512 |
+|  100 | blavaan         | rho_MZ   | 0.7771 | 0.0792 |  0.6285 | 0.8852 |
+|  100 | blavaan         | rho_DZ   | 0.1744 | 0.1749 | -0.1174 | 0.4526 |
+|  500 | Stan (marginal) | rho_MZ   | 0.8391 | 0.0291 |  0.7891 | 0.8818 |
+|  500 | Stan (marginal) | rho_DZ   | 0.4513 | 0.0652 |  0.3397 | 0.5541 |
+|  500 | blavaan         | rho_MZ   | 0.8391 | 0.0283 |  0.7902 | 0.8835 |
+|  500 | blavaan         | rho_DZ   | 0.4501 | 0.0674 |  0.3346 | 0.5556 |
+| 1552 | Stan (marginal) | rho_MZ   | 0.8088 | 0.0189 |  0.7766 | 0.8378 |
+| 1552 | Stan (marginal) | rho_DZ   | 0.4539 | 0.0404 |  0.3861 | 0.5189 |
+| 1552 | blavaan         | rho_MZ   | 0.8088 | 0.0189 |  0.7768 | 0.8383 |
+| 1552 | blavaan         | rho_DZ   | 0.4551 | 0.0386 |  0.3905 | 0.5178 |
+
+Correlation posterior mean, SD, and 90% credible interval
+
+``` r
+ggplot(correlations, aes(factor(N), mean, ymin = q05, ymax = q95, color = Method)) +
     geom_pointrange(position = position_dodge(width = 0.4)) +
-    facet_wrap(~group, labeller = label_both) +
-    labs(
-        x = "Sample size",
-        y = expression("Polychoric correlation " * rho ~ " (90% CI)"),
-        title = "Posterior Estimates: Stan (marginal) vs blavaan",
-        color = NULL,
-        shape = NULL
-    ) +
-    theme_minimal(base_size = 13) +
+    facet_wrap(~variable, labeller = label_both) +
+    labs(x = "Number of twin pairs", y = "Correlation and 90% credible interval", color = NULL) +
+    theme_minimal() +
     theme(legend.position = "bottom")
 ```
 
-![](benchmark-stan-blavaan_files/figure-commonmark/ests-plot-1.png)
+![](benchmark-stan-blavaan_files/figure-commonmark/estimates-plot-1.png)

@@ -1,79 +1,193 @@
 # Simulation results
 
 
-The simulation is based on the ACE model with the same parameters as in
-the Jöreskog example, but with smaller sample sizes (50 and 100 pairs),
-and with 2,500 replications. The results are stored in
-`simulation/sim_ace_joreskog-1.rds`, and the code to run the simulation
-is in `simulation/sim_ace_joreskog.R`. The methods compared are:
+This empirical-resampling evaluation uses the symmetrized Jöreskog BMI
+twin tables as the data-generating distributions. It includes 50, 100,
+and 500 pairs per zygosity group. The stored output,
+`simulation/sim_ace_joreskog-2.rds`, reports 2,400 analyzed replications
+per condition. The design is an empirical-resampling evaluation, not a
+simulation from known ACE parameters: the reference values are two-step
+polychoric estimates from the symmetrized tables, and the generating
+distributions need not satisfy the fitted Gaussian liability model with
+common thresholds.
 
-- Stan with simplex parameterization (`stan`)
-- Stan with unbounded parameterization (`stan_nc`)
-- umx with default settings (`umx`)
+The methods are Stan with simplex ACE proportions (`stan`), Stan with a
+regularizing simplex prior (`stan_reg`), Stan with unrestricted twin
+correlations (`stan_nc`), and UMX/OpenMx (`umx`). All three Stan models
+use standard-normal threshold priors; their ACE/correlation priors and
+parameter spaces differ. In Stan, convergence requires no divergent
+transitions, $\hat R < 1.01$, and bulk effective sample size greater
+than 400 for the reported ACE quantities. Stan retries with increasing
+`adapt_delta` and `max_treedepth`. UMX convergence records successful
+optimizer status and finite estimates; standard-error availability,
+boundary estimates, and profile-interval success are distinct outcomes.
+A zero variance component is an admissible boundary estimate.
+Point-estimate metrics use accepted fits; interval coverage and width
+use fits with available intervals. The reported interval counts make
+those denominators explicit.
 
-For Stan, convergence was achieved if there were no divergent
-transitions, the $\hat R$ values were less than 1.01, and the effective
-sample size was greater than 400. When divergent transitions were
-present, we reran the Stan NUTS sampler up to three times by increasing
-the `adapt_delta` parameter from 0.8 (default) to 0.90, 0.95, and 0.99,
-and the corresponding `max_treedepth` from 10 (default) to 12 and 15.
-For umx, convergence was considered achieved if the optimization
-algorithm converged and the Hessian matrix was positive definite, so
-that both point and standard errors could be computed. For all methods,
-we considered estimates to be admissible if (in the case of Stan, the
-posterior means of) both $h^2$ and $c^2$ were between 0 and 1, and their
-sum was less than or equal to 1.
+In the tables, **Simplex**, **Regularized simplex**, and
+**Unrestricted** denote the three Stan methods above, and **UMX**
+denotes UMX/OpenMx. All reported intervals have nominal 90% coverage.
+Stan point estimates are posterior means.
 
-<div id="tbl-conv-admiss">
+## Results overview
 
-Table 1: Convergence and admissibility rates
+Convergence was high across the evaluated conditions, ranging from 95.0%
+to 100.0%
+(<a href="#tbl-sim-diagnostics" class="quarto-xref">Table 1</a>). Both
+simplex Stan methods and UMX produced admissible estimates in all
+accepted fits. The unrestricted-correlation model produced admissible
+posterior-mean estimates in 57.3%, 63.7%, and 84.4% of accepted fits at
+50, 100, 500 pairs per group, respectively. UMX estimates remained
+admissible when a variance component reached zero: the c² boundary
+occurred in 37.8%, 32.7%, and 14.6% of accepted UMX fits. These boundary
+estimates should be distinguished from optimizer failure and
+inadmissibility.
+
+UMX standard errors for both components were available in at least 99.8%
+of attempts, but successful profile-interval computation was much less
+frequent
+(<a href="#tbl-sim-umx-diagnostics" class="quarto-xref">Table 2</a>).
+Both component intervals succeeded in 0.6%, 6.8%, and 26.5% of attempts
+as sample size increased. At 50 pairs per group, h² and c² profile
+intervals were available in 83 and 32 of the 2,400 attempts,
+respectively. Consequently, UMX coverage and mean-width results describe
+the subset with successful interval computation, rather than all
+accepted fits.
+
+The estimation results illustrate tradeoffs between bias, variability,
+and admissibility
+(<a href="#tbl-h2-sim" class="quarto-xref">Table 3</a>;
+<a href="#tbl-c2-sim" class="quarto-xref">Table 4</a>). At 50 pairs per
+group, the unrestricted model had smaller absolute biases for both
+components than the simplex methods, but larger RMSEs and frequent
+inadmissible estimates. The regularized simplex method had more negative
+h² bias and greater h² RMSE than the basic simplex method across the
+evaluated sample sizes; its h² interval coverage was also lower. Bias
+magnitudes and RMSEs generally decreased with sample size. These
+findings characterize this empirical-resampling evaluation: the
+reference components are descriptive targets, and the results do not
+establish a general ranking under a correctly specified ACE model.
+
+<div id="tbl-sim-diagnostics">
+
+Table 1: Convergence, admissibility, and median analysis time. Each
+method has 2,400 attempted replications per condition. Convergence uses
+all attempts; admissibility uses accepted fits.
 
 <div class="cell-output-display">
 
-<table class="cell" style="width:95%;">
+<table class="cell" style="width:97%;">
 <colgroup>
-<col style="width: 16%" />
-<col style="width: 15%" />
-<col style="width: 17%" />
-<col style="width: 6%" />
-<col style="width: 15%" />
-<col style="width: 17%" />
-<col style="width: 6%" />
+<col style="width: 24%" />
+<col style="width: 12%" />
+<col style="width: 20%" />
+<col style="width: 19%" />
+<col style="width: 20%" />
 </colgroup>
 <thead>
 <tr>
-<th></th>
-<th colspan="3">n = 50</th>
-<th colspan="3">n = 100</th>
-</tr>
-<tr>
-<th>metric</th>
-<th>Stan (simplex)</th>
-<th>Stan (unbounded)</th>
-<th>umx</th>
-<th>Stan (simplex)</th>
-<th>Stan (unbounded)</th>
-<th>umx</th>
+<th>Method</th>
+<th>Accepted</th>
+<th>Convergence (%)</th>
+<th>Admissible (%)</th>
+<th>Median time (s)</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>converge_rate</td>
-<td>95.2</td>
-<td>97.5</td>
-<td>100</td>
-<td>100</td>
-<td>100</td>
-<td>99.9</td>
+<td colspan="5">50 pairs/group</td>
 </tr>
 <tr>
-<td>admissible_rate</td>
-<td>100</td>
-<td>57.2</td>
-<td>27.3</td>
-<td>100</td>
-<td>65</td>
-<td>36.2</td>
+<td>Simplex</td>
+<td>2281</td>
+<td>95.0</td>
+<td>100.0</td>
+<td>1.69</td>
+</tr>
+<tr>
+<td>Regularized simplex</td>
+<td>2374</td>
+<td>98.9</td>
+<td>100.0</td>
+<td>1.59</td>
+</tr>
+<tr>
+<td>Unrestricted</td>
+<td>2334</td>
+<td>97.2</td>
+<td>57.3</td>
+<td>1.36</td>
+</tr>
+<tr>
+<td>UMX</td>
+<td>2393</td>
+<td>99.7</td>
+<td>100.0</td>
+<td>0.63</td>
+</tr>
+<tr>
+<td colspan="5">100 pairs/group</td>
+</tr>
+<tr>
+<td>Simplex</td>
+<td>2400</td>
+<td>100.0</td>
+<td>100.0</td>
+<td>1.76</td>
+</tr>
+<tr>
+<td>Regularized simplex</td>
+<td>2400</td>
+<td>100.0</td>
+<td>100.0</td>
+<td>1.70</td>
+</tr>
+<tr>
+<td>Unrestricted</td>
+<td>2400</td>
+<td>100.0</td>
+<td>63.7</td>
+<td>1.41</td>
+</tr>
+<tr>
+<td>UMX</td>
+<td>2399</td>
+<td>100.0</td>
+<td>100.0</td>
+<td>0.79</td>
+</tr>
+<tr>
+<td colspan="5">500 pairs/group</td>
+</tr>
+<tr>
+<td>Simplex</td>
+<td>2400</td>
+<td>100.0</td>
+<td>100.0</td>
+<td>1.89</td>
+</tr>
+<tr>
+<td>Regularized simplex</td>
+<td>2400</td>
+<td>100.0</td>
+<td>100.0</td>
+<td>1.74</td>
+</tr>
+<tr>
+<td>Unrestricted</td>
+<td>2400</td>
+<td>100.0</td>
+<td>84.4</td>
+<td>1.37</td>
+</tr>
+<tr>
+<td>UMX</td>
+<td>2400</td>
+<td>100.0</td>
+<td>100.0</td>
+<td>0.54</td>
 </tr>
 </tbody>
 </table>
@@ -82,140 +196,172 @@ Table 1: Convergence and admissibility rates
 
 </div>
 
-<div id="tbl-h2-sim">
+Median time is per attempted analysis, including retries and interval
+computations when requested, and excludes compilation and data
+generation.
 
-Table 2: Bias, RMSE, CI width, and CI coverage for $h^2$
+<div id="tbl-sim-umx-diagnostics">
+
+Table 2: UMX boundary and interval outcomes. The c² boundary rate uses
+accepted fits; SE and joint profile-CI success rates use all 2,400
+attempts per condition.
 
 <div class="cell-output-display">
 
-<table class="cell" style="width:96%;">
+| Pairs/group | c² boundary (%) | SE success (%) | Both profile CIs succeed (%) |
+|-------------|-----------------|----------------|------------------------------|
+| 50          | 37.8            | 99.8           | 0.6                          |
+| 100         | 32.7            | 100.0          | 6.8                          |
+| 500         | 14.6            | 100.0          | 26.5                         |
+
+</div>
+
+</div>
+
+UMX SE success requires standard errors for both components, and joint
+profile-CI success requires both component profile intervals to succeed.
+The component-specific interval counts are shown in
+<a href="#tbl-h2-sim" class="quarto-xref">Table 3</a> and
+<a href="#tbl-c2-sim" class="quarto-xref">Table 4</a>. Bias and RMSE use
+accepted fits, including inadmissible estimates from the unrestricted
+model. Coverage and mean interval width are conditional on successful
+interval computation, so UMX coverage should be interpreted alongside
+its interval counts. Each CI count is out of 2,400 attempted
+replications.
+
+<div id="tbl-h2-sim">
+
+Table 3: Estimation performance for h². Coverage and mean width use
+available 90% equal-tailed posterior intervals (Stan) or
+profile-likelihood intervals (UMX). CI count is the number of available
+intervals out of 2,400 attempts.
+
+<div class="cell-output-display">
+
+<table class="cell" style="width:95%;">
 <colgroup>
-<col style="width: 16%" />
-<col style="width: 12%" />
-<col style="width: 14%" />
-<col style="width: 12%" />
-<col style="width: 12%" />
-<col style="width: 14%" />
+<col style="width: 25%" />
+<col style="width: 10%" />
+<col style="width: 9%" />
+<col style="width: 18%" />
+<col style="width: 17%" />
 <col style="width: 12%" />
 </colgroup>
 <thead>
 <tr>
-<th></th>
-<th colspan="3">n = 50</th>
-<th colspan="3">n = 100</th>
-</tr>
-<tr>
-<th>metric</th>
-<th>Stan (simplex)</th>
-<th>Stan (unbounded)</th>
-<th>umx</th>
-<th>Stan (simplex)</th>
-<th>Stan (unbounded)</th>
-<th>umx</th>
+<th>Method</th>
+<th>Bias</th>
+<th>RMSE</th>
+<th>Mean CI width</th>
+<th>Coverage (%)</th>
+<th>CI count</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td colspan="7">Bias</td>
+<td colspan="6">50 pairs/group</td>
 </tr>
 <tr>
-<td>post mean</td>
-<td>-0.22</td>
-<td>-0.01</td>
-<td>-0.07</td>
-<td>-0.15</td>
-<td>-0.01</td>
-<td>-0.04</td>
+<td>Simplex</td>
+<td>-0.223</td>
+<td>0.253</td>
+<td>0.601</td>
+<td>78.1</td>
+<td>2281</td>
 </tr>
 <tr>
-<td>post median</td>
-<td>-0.21</td>
-<td>-0.02</td>
-<td><hr /></td>
-<td>-0.14</td>
-<td>-0.01</td>
-<td><hr /></td>
+<td>Regularized simplex</td>
+<td>-0.259</td>
+<td>0.279</td>
+<td>0.555</td>
+<td>57.1</td>
+<td>2374</td>
 </tr>
 <tr>
-<td>post mode</td>
-<td>-0.18</td>
-<td>-0.04</td>
-<td><hr /></td>
-<td>-0.11</td>
-<td>-0.02</td>
-<td><hr /></td>
+<td>Unrestricted</td>
+<td>-0.014</td>
+<td>0.322</td>
+<td>1.104</td>
+<td>90.5</td>
+<td>2334</td>
 </tr>
 <tr>
-<td colspan="7">CI Width</td>
+<td>UMX</td>
+<td>-0.083</td>
+<td>0.238</td>
+<td>0.754</td>
+<td>97.6</td>
+<td>83</td>
 </tr>
 <tr>
-<td>Equal-tailed/Wald</td>
-<td>0.60</td>
-<td>1.10</td>
-<td>0.93</td>
-<td>0.49</td>
-<td>0.77</td>
-<td>0.71</td>
+<td colspan="6">100 pairs/group</td>
 </tr>
 <tr>
-<td>HDI/Profile</td>
-<td>0.58</td>
-<td>1.10</td>
-<td>inadmissible</td>
-<td>0.47</td>
-<td>0.77</td>
-<td>inadmissible</td>
+<td>Simplex</td>
+<td>-0.153</td>
+<td>0.194</td>
+<td>0.488</td>
+<td>83.9</td>
+<td>2400</td>
 </tr>
 <tr>
-<td colspan="7">CI Coverage (%)</td>
+<td>Regularized simplex</td>
+<td>-0.193</td>
+<td>0.221</td>
+<td>0.470</td>
+<td>68.0</td>
+<td>2400</td>
 </tr>
 <tr>
-<td>Equal-tailed/Wald</td>
-<td>79.3</td>
-<td>91.4</td>
-<td>92.8</td>
-<td>85.4</td>
-<td>90.3</td>
-<td>94.4</td>
+<td>Unrestricted</td>
+<td>-0.004</td>
+<td>0.236</td>
+<td>0.768</td>
+<td>89.4</td>
+<td>2400</td>
 </tr>
 <tr>
-<td>HDI/Profile</td>
-<td>76.2</td>
-<td>90.8</td>
-<td>inadmissible</td>
-<td>88.0</td>
-<td>90.1</td>
-<td>inadmissible</td>
+<td>UMX</td>
+<td>-0.052</td>
+<td>0.182</td>
+<td>0.637</td>
+<td>86.5</td>
+<td>342</td>
 </tr>
 <tr>
-<td colspan="7">RMSE</td>
+<td colspan="6">500 pairs/group</td>
 </tr>
 <tr>
-<td>post mean</td>
-<td>0.25</td>
-<td>0.32</td>
-<td>0.24</td>
-<td>0.19</td>
-<td>0.23</td>
-<td>0.19</td>
+<td>Simplex</td>
+<td>-0.047</td>
+<td>0.084</td>
+<td>0.260</td>
+<td>92.4</td>
+<td>2400</td>
 </tr>
 <tr>
-<td>post median</td>
-<td>0.25</td>
-<td>0.32</td>
-<td><hr /></td>
-<td>0.19</td>
-<td>0.23</td>
-<td><hr /></td>
+<td>Regularized simplex</td>
+<td>-0.070</td>
+<td>0.097</td>
+<td>0.257</td>
+<td>86.8</td>
+<td>2400</td>
 </tr>
 <tr>
-<td>post mode</td>
-<td>0.26</td>
-<td>0.32</td>
-<td><hr /></td>
-<td>0.18</td>
-<td>0.23</td>
-<td><hr /></td>
+<td>Unrestricted</td>
+<td>-0.006</td>
+<td>0.103</td>
+<td>0.339</td>
+<td>90.0</td>
+<td>2400</td>
+</tr>
+<tr>
+<td>UMX</td>
+<td>-0.014</td>
+<td>0.092</td>
+<td>0.302</td>
+<td>88.8</td>
+<td>1388</td>
 </tr>
 </tbody>
 </table>
@@ -226,138 +372,137 @@ Table 2: Bias, RMSE, CI width, and CI coverage for $h^2$
 
 <div id="tbl-c2-sim">
 
-Table 3: Bias, RMSE, CI width, and CI coverage for $c^2$
+Table 4: Estimation performance for c². Coverage and mean width use
+available 90% equal-tailed posterior intervals (Stan) or
+profile-likelihood intervals (UMX). CI count is the number of available
+intervals out of 2,400 attempts.
 
 <div class="cell-output-display">
 
-<table class="cell" style="width:96%;">
+<table class="cell" style="width:95%;">
 <colgroup>
-<col style="width: 16%" />
-<col style="width: 12%" />
-<col style="width: 14%" />
-<col style="width: 12%" />
-<col style="width: 12%" />
-<col style="width: 14%" />
+<col style="width: 25%" />
+<col style="width: 10%" />
+<col style="width: 9%" />
+<col style="width: 18%" />
+<col style="width: 17%" />
 <col style="width: 12%" />
 </colgroup>
 <thead>
 <tr>
-<th></th>
-<th colspan="3">n = 50</th>
-<th colspan="3">n = 100</th>
-</tr>
-<tr>
-<th>metric</th>
-<th>Stan (simplex)</th>
-<th>Stan (unbounded)</th>
-<th>umx</th>
-<th>Stan (simplex)</th>
-<th>Stan (unbounded)</th>
-<th>umx</th>
+<th>Method</th>
+<th>Bias</th>
+<th>RMSE</th>
+<th>Mean CI width</th>
+<th>Coverage (%)</th>
+<th>CI count</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td colspan="7">Bias</td>
+<td colspan="6">50 pairs/group</td>
 </tr>
 <tr>
-<td>post mean</td>
-<td>0.17</td>
-<td>-0.04</td>
-<td>0.07</td>
-<td>0.12</td>
-<td>-0.02</td>
-<td>0.05</td>
+<td>Simplex</td>
+<td>0.172</td>
+<td>0.198</td>
+<td>0.499</td>
+<td>92.1</td>
+<td>2281</td>
 </tr>
 <tr>
-<td>post median</td>
-<td>0.16</td>
-<td>-0.03</td>
-<td><hr /></td>
-<td>0.11</td>
-<td>-0.01</td>
-<td><hr /></td>
+<td>Regularized simplex</td>
+<td>0.193</td>
+<td>0.211</td>
+<td>0.465</td>
+<td>81.0</td>
+<td>2374</td>
 </tr>
 <tr>
-<td>post mode</td>
-<td>0.10</td>
-<td>0.01</td>
-<td><hr /></td>
-<td>0.06</td>
-<td>0.01</td>
-<td><hr /></td>
+<td>Unrestricted</td>
+<td>-0.043</td>
+<td>0.292</td>
+<td>0.982</td>
+<td>90.7</td>
+<td>2334</td>
 </tr>
 <tr>
-<td colspan="7">CI Width</td>
+<td>UMX</td>
+<td>0.075</td>
+<td>0.208</td>
+<td>0.705</td>
+<td>78.1</td>
+<td>32</td>
 </tr>
 <tr>
-<td>Equal-tailed/Wald</td>
-<td>0.50</td>
-<td>0.98</td>
-<td>0.60</td>
-<td>0.42</td>
-<td>0.70</td>
-<td>0.48</td>
+<td colspan="6">100 pairs/group</td>
 </tr>
 <tr>
-<td>HDI/Profile</td>
-<td>0.46</td>
-<td>0.97</td>
-<td>inadmissible</td>
-<td>0.39</td>
-<td>0.69</td>
-<td>inadmissible</td>
+<td>Simplex</td>
+<td>0.127</td>
+<td>0.160</td>
+<td>0.414</td>
+<td>91.4</td>
+<td>2400</td>
 </tr>
 <tr>
-<td colspan="7">CI Coverage (%)</td>
+<td>Regularized simplex</td>
+<td>0.155</td>
+<td>0.177</td>
+<td>0.400</td>
+<td>82.5</td>
+<td>2400</td>
 </tr>
 <tr>
-<td>Equal-tailed/Wald</td>
-<td>91.8</td>
-<td>90.8</td>
-<td>56.1</td>
-<td>92.2</td>
-<td>90.8</td>
-<td>63.8</td>
+<td>Unrestricted</td>
+<td>-0.022</td>
+<td>0.215</td>
+<td>0.698</td>
+<td>89.9</td>
+<td>2400</td>
 </tr>
 <tr>
-<td>HDI/Profile</td>
-<td>89.3</td>
-<td>89.7</td>
-<td>inadmissible</td>
-<td>90.6</td>
-<td>90.0</td>
-<td>inadmissible</td>
+<td>UMX</td>
+<td>0.048</td>
+<td>0.162</td>
+<td>0.565</td>
+<td>49.3</td>
+<td>221</td>
 </tr>
 <tr>
-<td colspan="7">RMSE</td>
+<td colspan="6">500 pairs/group</td>
 </tr>
 <tr>
-<td>post mean</td>
-<td>0.20</td>
-<td>0.29</td>
-<td>0.21</td>
-<td>0.15</td>
-<td>0.21</td>
-<td>0.16</td>
+<td>Simplex</td>
+<td>0.042</td>
+<td>0.073</td>
+<td>0.234</td>
+<td>94.2</td>
+<td>2400</td>
 </tr>
 <tr>
-<td>post median</td>
-<td>0.20</td>
-<td>0.30</td>
-<td><hr /></td>
-<td>0.15</td>
-<td>0.21</td>
-<td><hr /></td>
+<td>Regularized simplex</td>
+<td>0.062</td>
+<td>0.084</td>
+<td>0.231</td>
+<td>88.8</td>
+<td>2400</td>
 </tr>
 <tr>
-<td>post mode</td>
-<td>0.21</td>
-<td>0.30</td>
-<td><hr /></td>
-<td>0.16</td>
-<td>0.21</td>
-<td><hr /></td>
+<td>Unrestricted</td>
+<td>0.001</td>
+<td>0.094</td>
+<td>0.314</td>
+<td>90.9</td>
+<td>2400</td>
+</tr>
+<tr>
+<td>UMX</td>
+<td>0.014</td>
+<td>0.083</td>
+<td>0.285</td>
+<td>68.1</td>
+<td>636</td>
 </tr>
 </tbody>
 </table>
@@ -366,50 +511,51 @@ Table 3: Bias, RMSE, CI width, and CI coverage for $c^2$
 
 </div>
 
-<div id="fig-combo-c2-h2">
+## Joint estimates and admissibility
 
-<div class="cell-output-display">
+<a href="#fig-sim-admissibility-50" class="quarto-xref">Figure 1</a>,
+<a href="#fig-sim-admissibility-100" class="quarto-xref">Figure 2</a>,
+and
+<a href="#fig-sim-admissibility-500" class="quarto-xref">Figure 3</a>
+show the joint distributions of the component estimates among accepted
+fits. The axes are shared across methods and sample sizes and include
+all plotted estimates. The shaded triangle marks the admissible region:
+$h^2 \geq 0$, $c^2 \geq 0$, and $h^2 + c^2 \leq 1$. Dashed lines mark
+the empirical-reference values, rather than known generating ACE
+parameters. UMX zero-boundary estimates are admissible; red triangles
+identify inadmissible estimates from the unrestricted-correlation model.
 
-<div id="fig-combo-c2-h2-1">
+<div id="fig-sim-admissibility-50">
 
-<img src="sim_joreskog_files/figure-commonmark/fig-combo-c2-h2-1.png"
-data-ref-parent="fig-combo-c2-h2" />
+![](sim_joreskog_files/figure-commonmark/fig-sim-admissibility-50-1.png)
 
-(a) Stan (simplex) posterior median
-
-</div>
-
-</div>
-
-<div class="cell-output-display">
-
-<div id="fig-combo-c2-h2-2">
-
-<img src="sim_joreskog_files/figure-commonmark/fig-combo-c2-h2-2.png"
-data-ref-parent="fig-combo-c2-h2" />
-
-(b) Stan (unbounded) posterior mean
-
-</div>
-
-</div>
-
-<div class="cell-output-display">
-
-<div id="fig-combo-c2-h2-3">
-
-<img src="sim_joreskog_files/figure-commonmark/fig-combo-c2-h2-3.png"
-data-ref-parent="fig-combo-c2-h2" />
-
-(c) umx
+Figure 1: Joint h² and c² estimates with 50 pairs per zygosity group,
+among accepted fits. Stan estimates are posterior means; UMX estimates
+are standardized variance proportions. The dotted triangle bounds the
+admissible region, red triangles mark inadmissible estimates, and dashed
+lines mark the empirical-reference values. Percentages in each panel use
+accepted fits.
 
 </div>
 
+<div id="fig-sim-admissibility-100">
+
+![](sim_joreskog_files/figure-commonmark/fig-sim-admissibility-100-1.png)
+
+Figure 2: Joint h² and c² estimates with 100 pairs per zygosity group,
+among accepted fits. Point summaries, boundaries, reference lines, and
+percentage denominators are as in
+<a href="#fig-sim-admissibility-50" class="quarto-xref">Figure 1</a>.
+
 </div>
 
-Figure 1: Estimates of $h^2$ and $c^2$. The dashed lines indicate the
-true values, and the dotted line indicates the boundary where
-$h^2 + c^2 = 1$. The red points indicate estimates from replications
-where the Stan (unbounded) or umx estimates were inadmissible.
+<div id="fig-sim-admissibility-500">
+
+![](sim_joreskog_files/figure-commonmark/fig-sim-admissibility-500-1.png)
+
+Figure 3: Joint h² and c² estimates with 500 pairs per zygosity group,
+among accepted fits. Point summaries, boundaries, reference lines, and
+percentage denominators are as in
+<a href="#fig-sim-admissibility-50" class="quarto-xref">Figure 1</a>.
 
 </div>

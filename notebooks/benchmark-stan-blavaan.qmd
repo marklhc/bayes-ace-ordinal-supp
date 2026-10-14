@@ -1,10 +1,6 @@
 ---
 title: "Stan (Marginal Likelihood) vs blavaan: Timing Benchmark"
 subtitle: "Unrestricted MZ and DZ Polychoric Correlations With Shared Thresholds"
-format:
-  html:
-    toc: true
-    code-fold: show
 execute:
   message: false
   warning: true

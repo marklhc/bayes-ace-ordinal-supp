@@ -149,17 +149,17 @@ m1 <- umxACE(
 
     Running ACE with 4 parameters
 
-     Lowest minimum so far:  5867.41909499162
+     Lowest minimum so far:  5867.41909499158
 
     Beginning fit attempt 2 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
-     Lowest minimum so far:  5867.41909499157
-
     Beginning fit attempt 3 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
+
+     Lowest minimum so far:  5867.41909499157
 
     Beginning fit attempt 4 of at maximum 10 extra tries
 
@@ -169,17 +169,15 @@ m1 <- umxACE(
 
     Running ACE with 4 parameters
 
-     Lowest minimum so far:  5867.41909499155
-
     Beginning fit attempt 6 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
+     Lowest minimum so far:  5867.41909499156
+
     Beginning fit attempt 7 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
-
-     Lowest minimum so far:  5867.41909499153
 
     Beginning fit attempt 8 of at maximum 10 extra tries
 
@@ -193,6 +191,8 @@ m1 <- umxACE(
 
     Running ACE with 4 parameters
 
+     Lowest minimum so far:  5867.41909499153
+
     Retry limit reached
 
     Solution found
@@ -205,7 +205,7 @@ m1 <- umxACE(
 
      Start values from best fit:
 
-    0.0068375859879446,0.845202399455705,0.321951306511955,0.43619159878987
+    0.00683760667670007,0.845202382037458,0.321951236370709,0.436191550306244
 
     ACE -2 × log(Likelihood) = 5867.419
 
@@ -391,8 +391,8 @@ summary(ace_fit)
     AIC:      -330.5809               5877.419                 5877.458
     BIC:    -16901.8627               5904.156                 5888.272
     To get additional fit indices, see help(mxRefModels)
-    timestamp: 2026-10-14 01:30:33 
-    Wall clock time: 0.04551291 secs 
+    timestamp: 2026-10-14 08:35:33 
+    Wall clock time: 0.04199886 secs 
     optimizer:  SLSQP 
     OpenMx version number: 2.22.11 
     Need help?  See help(mxSummary) 
@@ -554,13 +554,13 @@ ace_fit <- mxTryHardOrdinal(ace_fit, intervals = TRUE)
 
     Running ACEOrdinal with 4 parameters
 
-     Lowest minimum so far:  5867.41909499155
+     Lowest minimum so far:  5867.41909499152
 
     Beginning fit attempt 2 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
 
-     Lowest minimum so far:  5867.41909499154
+     Lowest minimum so far:  5867.41909499151
 
     Beginning fit attempt 3 of at maximum 10 extra tries
 
@@ -570,11 +570,11 @@ ace_fit <- mxTryHardOrdinal(ace_fit, intervals = TRUE)
 
     Running ACEOrdinal with 4 parameters
 
+     Lowest minimum so far:  5867.41909499148
+
     Beginning fit attempt 5 of at maximum 10 extra tries
 
     Running ACEOrdinal with 4 parameters
-
-     Lowest minimum so far:  5867.41909499153
 
     Beginning fit attempt 6 of at maximum 10 extra tries
 
@@ -608,7 +608,7 @@ ace_fit <- mxTryHardOrdinal(ace_fit, intervals = TRUE)
 
      Start values from best fit:
 
-    -0.0768346095240241,0.871927830485795,0.708498532361741,0.102801313649745
+    -0.0768346378732881,0.871927794823717,0.708498646070556,0.102801217334897
 
 ``` r
 summary(ace_fit)
@@ -618,15 +618,15 @@ summary(ace_fit)
      
     free parameters:
       name   matrix row   col    Estimate  Std.Error A
-    1   t1 MZ.thres   1 twin1 -0.07683461 0.02694969  
-    2   t2 MZ.thres   2 twin1  0.87192783 0.03062458  
-    3 VA11    MZ.VA   1     1  0.70849853 0.08304976  
-    4 VC11    MZ.VC   1     1  0.10280131 0.07757224  
+    1   t1 MZ.thres   1 twin1 -0.07683464 0.02694969  
+    2   t2 MZ.thres   2 twin1  0.87192779 0.03062458  
+    3 VA11    MZ.VA   1     1  0.70849865 0.08304976  
+    4 VC11    MZ.VC   1     1  0.10280122 0.07757225  
 
     confidence intervals:
               lbound  estimate    ubound note
-    VA11  0.55000831 0.7084985 0.8761937     
-    VC11 -0.05583271 0.1028013 0.2487363     
+    VA11  0.55000831 0.7084986 0.8761937     
+    VC11 -0.05583271 0.1028012 0.2487363     
 
     Model Statistics: 
                    |  Parameters  |  Degrees of Freedom  |  Fit (-2lnL units)
@@ -640,8 +640,8 @@ summary(ace_fit)
     AIC:      -332.5809               5875.419                 5875.445
     BIC:    -16909.2100               5896.808                 5884.101
     To get additional fit indices, see help(mxRefModels)
-    timestamp: 2026-10-14 01:30:34 
-    Wall clock time: 0.08637857 secs 
+    timestamp: 2026-10-14 08:35:34 
+    Wall clock time: 0.07505965 secs 
     optimizer:  SLSQP 
     OpenMx version number: 2.22.11 
     Need help?  See help(mxSummary) 

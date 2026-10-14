@@ -222,385 +222,6 @@ ace_fit <- ace$sample(
 )
 ```
 
-    Running MCMC with 4 parallel chains...
-
-    Chain 1 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    Chain 1 Iteration:  100 / 2000 [  5%]  (Warmup) 
-    Chain 1 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-    Chain 1 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-    Chain 1 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-    Chain 1 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    Chain 1 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-    Chain 1 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-    Chain 1 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-    Chain 1 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-    Chain 1 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    Chain 1 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    Chain 1 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-    Chain 1 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-    Chain 1 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-    Chain 1 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-    Chain 1 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    Chain 1 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-    Chain 1 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-    Chain 1 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-    Chain 1 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-    Chain 1 Iteration: 2000 / 2000 [100%]  (Sampling) 
-
-    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 1 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 1 
-
-    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 1 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[2] is -5.55112e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 1 
-
-    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 1 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi2[6] is -2.77556e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 32, column 2 to line 33, column 43)
-
-    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 1 
-
-    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 1 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[2] is -5.55112e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 1 
-
-    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 1 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[2] is -4.16334e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 1 
-
-    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 1 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is -1.38778e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 1 
-
-    Chain 2 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    Chain 2 Iteration:  100 / 2000 [  5%]  (Warmup) 
-    Chain 2 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-    Chain 2 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-    Chain 2 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-    Chain 2 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    Chain 2 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-    Chain 2 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-    Chain 2 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-    Chain 2 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-    Chain 2 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    Chain 2 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    Chain 2 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-    Chain 2 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-    Chain 2 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-    Chain 2 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-    Chain 2 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    Chain 2 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-    Chain 2 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-    Chain 2 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-    Chain 2 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-    Chain 2 Iteration: 2000 / 2000 [100%]  (Sampling) 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi2[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 32, column 2 to line 33, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi2[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 32, column 2 to line 33, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[2] is -1.06133e-173, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[5] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[5] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi2[5] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 32, column 2 to line 33, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is -5.55112e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is -2.77556e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 3 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    Chain 3 Iteration:  100 / 2000 [  5%]  (Warmup) 
-    Chain 3 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-    Chain 3 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-    Chain 3 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-    Chain 3 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    Chain 3 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-    Chain 3 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-    Chain 3 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-    Chain 3 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-    Chain 3 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    Chain 3 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    Chain 3 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-    Chain 3 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-    Chain 3 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-    Chain 3 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-    Chain 3 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    Chain 3 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-    Chain 3 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-    Chain 3 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-    Chain 3 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-    Chain 3 Iteration: 2000 / 2000 [100%]  (Sampling) 
-
-    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 3 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 3 
-
-    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 3 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[4] is -1.29247e-26, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 3 
-
-    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 3 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[5] is -1.32619e-20, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 3 
-
-    Chain 4 Rejecting initial value:
-
-    Chain 4   Log probability evaluates to log(0), i.e. negative infinity.
-
-    Chain 4   Stan can't start sampling from this initial value.
-
-    Chain 4 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    Chain 4 Iteration:  100 / 2000 [  5%]  (Warmup) 
-    Chain 4 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-    Chain 4 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-    Chain 4 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-    Chain 4 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    Chain 4 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-    Chain 4 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-    Chain 4 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-    Chain 4 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-    Chain 4 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    Chain 4 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    Chain 4 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-    Chain 4 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-    Chain 4 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-    Chain 4 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-    Chain 4 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    Chain 4 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-    Chain 4 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-    Chain 4 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-    Chain 4 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-    Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[3] is -4.85723e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[4] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[3] is -1.53957e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi2[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 32, column 2 to line 33, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_2a61255ef19bb06a224b4e7a640eb427_model_namespace::log_prob: pi2[4] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b921abaf90.stan', line 32, column 2 to line 33, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 1 finished in 0.1 seconds.
-    Chain 2 finished in 0.1 seconds.
-    Chain 3 finished in 0.1 seconds.
-    Chain 4 finished in 0.1 seconds.
-
-    All 4 chains finished successfully.
-    Mean chain execution time: 0.1 seconds.
-    Total execution time: 0.4 seconds.
-
 ### Step 4: Check convergence
 
 ``` r
@@ -743,297 +364,6 @@ ace_s_fit <- ace_simplex$sample(
     seed = 732 # for reproducibility
 )
 ```
-
-    Running MCMC with 4 parallel chains...
-
-    Chain 1 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    Chain 1 Iteration:  100 / 2000 [  5%]  (Warmup) 
-    Chain 1 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-    Chain 1 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-    Chain 1 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-    Chain 1 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    Chain 1 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-    Chain 1 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-    Chain 1 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-    Chain 1 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-    Chain 1 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    Chain 1 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    Chain 1 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-    Chain 1 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-    Chain 1 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-    Chain 1 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-    Chain 1 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    Chain 1 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-    Chain 1 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-    Chain 1 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-    Chain 1 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-    Chain 1 Iteration: 2000 / 2000 [100%]  (Sampling) 
-
-    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 1 
-
-    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 1 
-
-    Chain 1 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 1 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 1 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 1 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 1 
-
-    Chain 2 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    Chain 2 Iteration:  100 / 2000 [  5%]  (Warmup) 
-    Chain 2 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-    Chain 2 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-    Chain 2 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-    Chain 2 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    Chain 2 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-    Chain 2 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-    Chain 2 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-    Chain 2 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-    Chain 2 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    Chain 2 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    Chain 2 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-    Chain 2 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-    Chain 2 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-    Chain 2 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-    Chain 2 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    Chain 2 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-    Chain 2 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-    Chain 2 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-    Chain 2 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-    Chain 2 Iteration: 2000 / 2000 [100%]  (Sampling) 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[2] is -3.17112e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 2 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 2 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -2.42861e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 2 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 2 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 2 
-
-    Chain 3 Rejecting initial value:
-
-    Chain 3   Error evaluating the log probability at the initial value.
-
-    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -9.71445e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -9.71445e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 3 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    Chain 3 Iteration:  100 / 2000 [  5%]  (Warmup) 
-    Chain 3 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-    Chain 3 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-    Chain 3 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-    Chain 3 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    Chain 3 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-    Chain 3 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-    Chain 3 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-    Chain 3 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-    Chain 3 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    Chain 3 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    Chain 3 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-    Chain 3 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-    Chain 3 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-    Chain 3 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-    Chain 3 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    Chain 3 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-    Chain 3 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-    Chain 3 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-    Chain 3 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-    Chain 3 Iteration: 2000 / 2000 [100%]  (Sampling) 
-
-    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 3 
-
-    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -2.25514e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 3 
-
-    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -2.22045e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 3 
-
-    Chain 3 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 3 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -1.11022e-16, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 3 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 3 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 3 
-
-    Chain 4 Iteration:    1 / 2000 [  0%]  (Warmup) 
-    Chain 4 Iteration:  100 / 2000 [  5%]  (Warmup) 
-    Chain 4 Iteration:  200 / 2000 [ 10%]  (Warmup) 
-    Chain 4 Iteration:  300 / 2000 [ 15%]  (Warmup) 
-    Chain 4 Iteration:  400 / 2000 [ 20%]  (Warmup) 
-    Chain 4 Iteration:  500 / 2000 [ 25%]  (Warmup) 
-    Chain 4 Iteration:  600 / 2000 [ 30%]  (Warmup) 
-    Chain 4 Iteration:  700 / 2000 [ 35%]  (Warmup) 
-    Chain 4 Iteration:  800 / 2000 [ 40%]  (Warmup) 
-    Chain 4 Iteration:  900 / 2000 [ 45%]  (Warmup) 
-    Chain 4 Iteration: 1000 / 2000 [ 50%]  (Warmup) 
-    Chain 4 Iteration: 1001 / 2000 [ 50%]  (Sampling) 
-    Chain 4 Iteration: 1100 / 2000 [ 55%]  (Sampling) 
-    Chain 4 Iteration: 1200 / 2000 [ 60%]  (Sampling) 
-    Chain 4 Iteration: 1300 / 2000 [ 65%]  (Sampling) 
-    Chain 4 Iteration: 1400 / 2000 [ 70%]  (Sampling) 
-    Chain 4 Iteration: 1500 / 2000 [ 75%]  (Sampling) 
-    Chain 4 Iteration: 1600 / 2000 [ 80%]  (Sampling) 
-    Chain 4 Iteration: 1700 / 2000 [ 85%]  (Sampling) 
-    Chain 4 Iteration: 1800 / 2000 [ 90%]  (Sampling) 
-    Chain 4 Iteration: 1900 / 2000 [ 95%]  (Sampling) 
-    Chain 4 Iteration: 2000 / 2000 [100%]  (Sampling) 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is -7.8822e-84, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi2[4] is -6.46235e-27, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 32, column 2 to line 33, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[3] is -3.90313e-17, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 4 Informational Message: The current Metropolis proposal is about to be rejected because of the following issue:
-
-    Chain 4 Exception: model_ee8feaf9de8e0ce9d97f17ae2333fe9d_model_namespace::log_prob: pi1[1] is nan, but must be greater than or equal to 0.000000 (in '/tmp/RtmpmXAdeQ/model-166b91474a928.stan', line 30, column 2 to line 31, column 43)
-
-    Chain 4 If this warning occurs sporadically, such as for highly constrained variable types like covariance matrices, then the sampler is fine,
-
-    Chain 4 but if this warning occurs often then your model may be either severely ill-conditioned or misspecified.
-
-    Chain 4 
-
-    Chain 1 finished in 0.2 seconds.
-    Chain 2 finished in 0.2 seconds.
-    Chain 3 finished in 0.2 seconds.
-    Chain 4 finished in 0.2 seconds.
-
-    All 4 chains finished successfully.
-    Mean chain execution time: 0.2 seconds.
-    Total execution time: 0.4 seconds.
 
 ``` r
 ace_s_fit$summary(params, mean, median, sd, mad, posterior::quantile2, hdi2) |>
@@ -1323,21 +653,23 @@ m1 <- umxACE(
 
     Running ACE with 4 parameters
 
+     Lowest minimum so far:  365.978829144971
+
     Beginning fit attempt 3 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
-     Lowest minimum so far:  365.97882914497
+     Lowest minimum so far:  365.978829144971
 
     Beginning fit attempt 4 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
 
+     Lowest minimum so far:  365.97882914497
+
     Beginning fit attempt 5 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
-
-     Lowest minimum so far:  365.97882914497
 
     Beginning fit attempt 6 of at maximum 10 extra tries
 
@@ -1355,8 +687,6 @@ m1 <- umxACE(
 
     Running ACE with 4 parameters
 
-     Lowest minimum so far:  365.97882914497
-
     Beginning fit attempt 10 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
@@ -1373,7 +703,7 @@ m1 <- umxACE(
 
      Start values from best fit:
 
-    -0.0247588952510103,0.93411800368968,0,0.471878567383147
+    -0.024758927371081,0.934118071479837,0,0.471878643174057
 
     ACE -2 × log(Likelihood) = 365.979
 
@@ -1423,7 +753,7 @@ umxConfint(m1, run = TRUE)
                    lbound estimate ubound lbound Code ubound Code
     top.a_std[1,1]     NA    0.893     NA          NA          NA
     top.c_std[1,1]     NA    0.000  0.577          NA           3
-    top.e_std[1,1]  0.309    0.451     NA           3          NA
+    top.e_std[1,1]     NA    0.451     NA          NA          NA
 
 ``` r
 # Model and summary with DWLS
@@ -1459,13 +789,11 @@ m1_dwls <- umxACE(
 
     Running ACE with 4 parameters
 
-     Lowest minimum so far:  0.0391834784698893
+     Lowest minimum so far:  0.0391834784698892
 
     Beginning fit attempt 3 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
-
-     Lowest minimum so far:  0.0391834784698892
 
     Beginning fit attempt 4 of at maximum 10 extra tries
 
@@ -1489,6 +817,8 @@ m1_dwls <- umxACE(
 
     Running ACE with 4 parameters
 
+     Lowest minimum so far:  0.0391834784698892
+
     Beginning fit attempt 9 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
@@ -1509,9 +839,9 @@ m1_dwls <- umxACE(
 
      Start values from best fit:
 
-    -8.39780463077408e-05,0.895116917510659,0,0.46164385531043
+    -8.39772023278525e-05,0.895116918606286,9.4084489021653e-09,0.461643857432493
 
-    ACE -2 × log(Likelihood) = 7.882
+    ACE -2 × log(Likelihood) = 6.478
 
     Table: Standardized parameter estimates from a 1-factor Cholesky ACE model. A: additive genetic; C: common environment; E: unique environment.
 
@@ -1532,7 +862,7 @@ m1_dwls <- umxACE(
 umxSummary(m1_dwls)
 ```
 
-    ACE -2 × log(Likelihood) = 7.88
+    ACE -2 × log(Likelihood) = 6.48
 
     Table: Standardized parameter estimates from a 1-factor Cholesky ACE model. A: additive genetic; C: common environment; E: unique environment.
 
@@ -1557,11 +887,16 @@ summary(m1_dwls)
     Summary of ACE 
      
     free parameters:
-               name      matrix   row   col      Estimate Std.Error A lbound ubound
-    1 expMean_twin1 top.expMean means twin1 -8.397805e-05 1.9744391                
-    2        a_r1c1       top.a     1     1  8.951169e-01 1.0394250        0       
-    3        c_r1c1       top.c     1     1  0.000000e+00        NA       0!       
-    4        e_r1c1       top.e     1     1  4.616439e-01 0.8338411        0       
+               name      matrix   row   col      Estimate    Std.Error A lbound
+    1 expMean_twin1 top.expMean means twin1 -8.397720e-05 1.974439e+00         
+    2        a_r1c1       top.a     1     1  8.951169e-01 1.039425e+00        0
+    3        c_r1c1       top.c     1     1  9.408449e-09 1.122410e-08 !     0!
+    4        e_r1c1       top.e     1     1  4.616439e-01 8.338411e-01        0
+      ubound
+    1       
+    2       
+    3       
+    4       
 
     To obtain confidence intervals re-run with intervals=TRUE
 
@@ -1572,14 +907,14 @@ summary(m1_dwls)
     Independence:             NA                     NA                   NA
     Number of observations/statistics: 100/10
 
-    chi-square:  χ² ( df=NA ) = 7.881711,  p = 0.3431401
+    chi-square:  χ² ( df=NA ) = 6.477706,  p = 0.3718542
     CFI: NA 
     TLI: NA   (also known as NNFI) 
-    RMSEA:  0.03549066  [95% CI (0, 0.1452482)]
-    Prob(RMSEA <= 0.05): 0.5088431
+    RMSEA:  0.02821661  [95% CI (0, 0.1500864)]
+    Prob(RMSEA <= 0.05): 0.5253774
     To get additional fit indices, see help(mxRefModels)
-    timestamp: 2026-10-14 01:29:19 
-    Wall clock time: 0.1183586 secs 
+    timestamp: 2026-10-14 08:34:52 
+    Wall clock time: 0.1118538 secs 
     optimizer:  SLSQP 
     OpenMx version number: 2.22.11 
     Need help?  See help(mxSummary) 
@@ -1612,8 +947,6 @@ m1_wls <- umxACE(
 
     Running ACE with 4 parameters
 
-     Lowest minimum so far:  0.0788171065541069
-
     Beginning fit attempt 2 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
@@ -1632,6 +965,8 @@ m1_wls <- umxACE(
 
     Running ACE with 4 parameters
 
+     Lowest minimum so far:  0.0788171065541069
+
     Beginning fit attempt 6 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
@@ -1639,8 +974,6 @@ m1_wls <- umxACE(
     Beginning fit attempt 7 of at maximum 10 extra tries
 
     Running ACE with 4 parameters
-
-     Lowest minimum so far:  0.0788171065541069
 
     Beginning fit attempt 8 of at maximum 10 extra tries
 
@@ -1666,7 +999,7 @@ m1_wls <- umxACE(
 
      Start values from best fit:
 
-    -0.0342164654370117,0.971005708745169,1.15830864848609e-25,0.44784187760483
+    -0.0342164605804386,0.971005705861823,0,0.447841878956487
 
     ACE -2 × log(Likelihood) = 7.882
 

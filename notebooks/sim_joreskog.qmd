@@ -1,6 +1,5 @@
 ---
 title: "Simulation results"
-format: typst
 echo: false
 warning: false
 ---
